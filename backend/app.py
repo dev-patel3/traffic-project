@@ -40,7 +40,7 @@ class TrafficJunctionCalculator:
     }
 
     def __init__(self):
-        """Initialize calculator with default values"""
+        """Initialises calculator with default values"""
         self.max_red_duration = 120  # Maximum red light duration in seconds
         self.cycle_duration = 240    # Total traffic light cycle duration
         self.base_processing_rate = 1800  # Vehicles per hour through green light
@@ -54,7 +54,7 @@ class TrafficJunctionCalculator:
         processing_rate: float
     ) -> float:
         """
-        Calculate average wait time for vehicles in a direction
+        Calculates average wait time for vehicles in a direction
         Returns wait time in seconds
         """
         return (red_light_duration * queue_size * priority_factor) / (num_lanes * processing_rate)
@@ -174,7 +174,7 @@ class TrafficJunctionCalculator:
             (special_lane_score * 0.1)
         )
 
-# Initialize calculator
+# Initialise calculator
 calculator = TrafficJunctionCalculator()
 
 @app.route('/api/simulate', methods=['POST'])
