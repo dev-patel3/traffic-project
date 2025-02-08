@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import JunctionDesign from './components/JunctionDesign/JunctionDesign';
 
 function App() {
   const [message, setMessage] = useState('');
@@ -11,7 +12,13 @@ function App() {
 
   return (
     <div>
-      <h1>{message}</h1>
+      {/* API test message */}
+      <div className="p-4">
+        <h1>{message}</h1>
+      </div>
+
+      {/* Junction Design component */}
+      <JunctionDesign />
     </div>
   );
 }
