@@ -1,4 +1,4 @@
-from sqlalchemy.engine.base import Connection  # SQLAlchemy connection 
+from sqlalchemy.engine.base import Connection #SQLAlchemy connection 
 from junction_config import JunctionConfiguration  
 
 class JunctionHandler:

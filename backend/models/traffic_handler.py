@@ -1,4 +1,4 @@
-from sqlalchemy.engine.base import Connection  # ✅ SQLAlchemy connection type
+from sqlalchemy.engine.base import Connection  
 from traffic_flow import TrafficFlow 
 
 class TrafficHandler:
@@ -6,7 +6,7 @@ class TrafficHandler:
         #Initialising TrafficHandler with a database connection
         self.connection = connection  
     
-    #Saving a TrafficFlow object to the database"""
+    #Saving a TrafficFlow object to the database
     def saveTrafficFlow(self, flow: TrafficFlow) -> None:
         pass
 
