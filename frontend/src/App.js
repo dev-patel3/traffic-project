@@ -6,7 +6,7 @@ import SavedConfigurations from './components/JunctionDesign/SavedConfigurations
 
 function App() {
   const [message, setMessage] = useState('');
-  const [currentPage, setCurrentPage] = useState('saved'); 
+  const [currentPage, setCurrentPage] = useState('saved'); // 'saved', 'traffic', or 'junction'
 
   useEffect(() => {
     axios.get('http://localhost:5000/api/test')
@@ -57,7 +57,7 @@ function App() {
       </div>
 
       {/* Main content */}
-      {currentPage === 'saved' && <SavedConfigurations />}
+      {currentPage === 'saved' && <SavedConfigurations onNavigate={setCurrentPage} />}
       {currentPage === 'traffic' && <TrafficConfigPage />}
       {currentPage === 'junction' && <JunctionDesign />}
     </div>

@@ -2,7 +2,7 @@ import React from 'react';
 import { ChevronLeft, HelpCircle, Plus, Edit2, Trash2 } from 'lucide-react';
 import { Card } from '../ui/card';
 
-const SavedConfigurations = () => {
+const SavedConfigurations = ({ onNavigate }) => {
   const configurations = [
     {
       id: 1,
@@ -35,7 +35,10 @@ const SavedConfigurations = () => {
       <main className="max-w-7xl mx-auto px-4 py-6">
         <div className="space-y-4">
           {/* Create New Button */}
-          <Card className="p-6 shadow-sm bg-white border-gray-100 hover:bg-gray-50 cursor-pointer">
+          <Card 
+            className="p-6 shadow-sm bg-white border-gray-100 hover:bg-gray-50 cursor-pointer"
+            onClick={() => onNavigate('traffic')}
+          >
             <div className="flex items-center space-x-3">
               <div className="rounded-full bg-gray-100 p-2">
                 <Plus className="h-5 w-5 text-gray-600" />
