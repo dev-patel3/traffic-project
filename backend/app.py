@@ -9,7 +9,7 @@ CORS(app)
 
 @app.route('/api/test')
 def test():
-    return {'message': 'Connected to Flask! Lol'}
+    return {'message': 'Connected to Flask!'}
 
 class TrafficJunctionCalculator:
     """
