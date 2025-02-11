@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Card } from './components/ui/card';
 import JunctionDesign from './components/JunctionDesign/JunctionDesign';
 import TrafficConfigPage from './components/JunctionDesign/TrafficConfigPage';
 import SavedConfigurations from './components/JunctionDesign/SavedConfigurations';
 import HomePage from './components/JunctionDesign/HomePage';
+import SimulationPage from './components/JunctionDesign/JunctionSimulation';
+import SavedJunctions from './components/JunctionDesign/SavedJunctions';
 
 function App() {
   const [message, setMessage] = useState('');
@@ -27,7 +28,6 @@ function App() {
                 ? 'bg-blue-500 text-white' 
                 : 'bg-gray-100 hover:bg-gray-200'
             }`}
-
           >
             Home
             </button>
@@ -39,7 +39,6 @@ function App() {
                 : 'bg-gray-100 hover:bg-gray-200'
               }`}
           >
-
             Saved Configurations
           </button>
           <button
@@ -53,17 +52,38 @@ function App() {
             Traffic Configuration
           </button>
           <button
-            onClick={() => setCurrentPage('junction')}
+            onClick={() => setCurrentPage('junctionDesign')}
             className={`px-4 py-2 rounded-md ${
-              currentPage === 'junction' 
+              currentPage === 'junctionDesign' 
                 ? 'bg-blue-500 text-white' 
                 : 'bg-gray-100 hover:bg-gray-200'
             }`}
           >
             Junction Design
           </button>
+          <button
+            onClick={() => setCurrentPage('simulation')}
+            className={`px-4 py-2 rounded-md ${
+              currentPage === 'simulation' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-100 hover:bg-gray-200'
+            }`}
+          >
+            Simulation
+          </button>
+          <button
+            onClick={() => setCurrentPage('junctionSaved')}
+            className={`px-4 py-2 rounded-md ${
+              currentPage === 'junctionSaved' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-100 hover:bg-gray-200'
+            }`}
+          >
+            Saved Junctions
+          </button>
         </div>
       </div>
+
 
       {/* API test message */}
       <div className="p-4">
@@ -74,7 +94,9 @@ function App() {
       {currentPage === 'home' && <HomePage onNavigate={setCurrentPage} />}
       {currentPage === 'saved' && <SavedConfigurations onNavigate={setCurrentPage} />}
       {currentPage === 'traffic' && <TrafficConfigPage />}
-      {currentPage === 'junction' && <JunctionDesign />}{}
+      {currentPage === 'junctionDesign' && <JunctionDesign />}{}
+      {currentPage === 'simulation' && <SimulationPage />}
+      {currentPage === 'junctionSaved' && <SavedJunctions onNavigate={setCurrentPage}/>}
     </div>
   );
 
