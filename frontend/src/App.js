@@ -78,22 +78,6 @@ function App() {
     </div>
   );
 
-  // return (
-  //   <div>
-  //     {/* API test message */}
-  //     <div className="p-4">
-  //       <h1>{message}</h1>
-  //     </div>
-
-  //     {/* Main content */}
-  //     {currentPage === 'home' && <HomePage onNavigate={setCurrentPage} />}
-  //     {currentPage === 'saved' && <SavedConfigurations onNavigate={setCurrentPage} />}
-  //     {currentPage === 'traffic' && <TrafficConfigPage onNavigate={setCurrentPage} />}
-  //     {currentPage === 'junction' && <JunctionDesign onNavigate={setCurrentPage} />}
-  //     {/* {currentPage === 'simulation' && <JunctionSimulation onNavigate={setCurrentPage} />} */}
-  //   </div>
-  // );
-
 }
 
 export default App;
