@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ChevronLeft, HelpCircle } from 'lucide-react';
+import { ChevronLeft, HelpCircle, FolderOpen } from 'lucide-react';
 import JunctionDesign from './components/JunctionDesign/JunctionDesign';
 import TrafficConfigPage from './components/JunctionDesign/TrafficConfigPage';
 import SavedConfigurations from './components/JunctionDesign/SavedConfigurations';
@@ -47,6 +47,7 @@ function App() {
   };
 
   const shouldShowBack = currentPage !== 'home' || showHelp;
+  const shouldShowSaved = currentPage !== 'saved';
 
   if (showHelp) {
     return (
@@ -60,7 +61,7 @@ function App() {
               </button>
             </div>
             <h1 className="text-xl font-semibold">{pageTitles.help}</h1>
-            <div className="w-20"></div> {/* Spacer to maintain header layout */}
+            <div className="w-20"></div>
           </div>
         </header>
         <HelpPage />
@@ -81,12 +82,23 @@ function App() {
             )}
           </div>
           <h1 className="text-xl font-semibold">{pageTitles[currentPage]}</h1>
-          <div 
-            className="flex items-center space-x-1 cursor-pointer"
-            onClick={() => setShowHelp(true)}
-          >
-            <HelpCircle className="h-5 w-5" />
-            <span className="text-sm">Help</span>
+          <div className="flex items-center space-x-6">
+            {shouldShowSaved && (
+              <button 
+                onClick={() => navigateTo('saved')}
+                className="flex items-center space-x-1 hover:text-gray-600"
+              >
+                <FolderOpen className="h-5 w-5" />
+                <span className="text-sm">Saved Configurations</span>
+              </button>
+            )}
+            <button 
+              className="flex items-center space-x-1 cursor-pointer"
+              onClick={() => setShowHelp(true)}
+            >
+              <HelpCircle className="h-5 w-5" />
+              <span className="text-sm">Help</span>
+            </button>
           </div>
         </div>
       </header>

@@ -5,15 +5,6 @@ import { Card } from '../ui/card';
 const HelpPage = () => {
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center">
-          <div className="flex items-center space-x-2">
-            <ChevronLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Back</span>
-          </div>
-          <h1 className="text-xl font-semibold ml-auto mr-auto">Help Guide</h1>
-        </div>
-      </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         <div className="space-y-6">

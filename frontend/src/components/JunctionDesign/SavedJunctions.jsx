@@ -5,23 +5,6 @@ import { Card } from '../ui/card';
 const SavedJunctionsPage = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div 
-            className="flex items-center space-x-2 cursor-pointer hover:text-gray-600"
-            onClick={() => onNavigate('saved')}
-          >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
-            <span className="text-sm">Back to Saved Configurations</span>
-          </div>
-          <h1 className="text-xl font-semibold">Traffic Configuration Name</h1>
-          <div className="flex items-center space-x-2 cursor-pointer hover:text-gray-600">
-            <HelpCircle className="h-5 w-5 text-gray-600" />
-            <span className="text-sm">Help</span>
-          </div>
-        </div>
-      </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Traffic Data Overview */}
