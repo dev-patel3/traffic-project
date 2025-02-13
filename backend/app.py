@@ -1,5 +1,6 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_cors import CORS
+from history_configuration import HistoryConfiguration
 
 from typing import Dict, List, Union
 import math
@@ -10,6 +11,13 @@ CORS(app)
 @app.route('/api/test')
 def test():
     return {'message': 'Connected to Flask!'}
+
+@app.route('/api/delete_configuration/<name>', methods=['DELETE'])
+def delete_configuration(name):
+    completed = history_config.deleteConfiguration(name)
+    if completed:
+        return jsonify({'message' : 'The configuration was deleted successfully'}), 200
+    return jsonify(['error' : 'The Configuration could not be found']), 404
 
 class TrafficJunctionCalculator:
     """

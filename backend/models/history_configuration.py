@@ -10,6 +10,19 @@ class HistoryConfiguration:
         pass
 
     def getConfiguration(self, name: str) -> JunctionConfiguration:
-        #Retrieving the object by name 
-        pass
+        #Retrieving the object by name
+        #returns none if the configuration doesn't exist
+        return self.savedConfigurations.get(name, None)
+
+    def deleteConfiguration(self, name: str) -> bool:
+        if name in self.savedConfigurations:
+            del self.savedConfigurations[name]
+            self.save_to_file()
+            return True
+        return False
+
+    
+
+    
+        
 
