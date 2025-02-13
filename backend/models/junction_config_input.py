@@ -6,7 +6,7 @@ class JunctionConfigurationInput:
         self.junctionConfig = junctionConfig  
         self.errors = "" 
 
-    def validateConfiguration(self, data) -> None:
+    def validateConfiguration(self, data, existing_junction_config_names: set) -> dict:
         """
         This is how input data is validated for junction configuration inputs.
         """
@@ -21,7 +21,7 @@ class JunctionConfigurationInput:
 
         # 1) Validate that none of the necessary input boxes are empty (and for the conditional boxes as well)
         if not junction_config_name:
-            return("Junction configuration name must be non-empty.")
+            errors.append("Junction configuration name must be non-empty.")
         for direction in ['north', 'south', 'east', 'west']:
             direction_config = config.get(direction, {})
             # number of lanes not empty
@@ -29,14 +29,14 @@ class JunctionConfigurationInput:
             if lanes is None:
                 errors.append(f"Number of lanes for {direction} must be non-empty.")
             # CONDITIONAL - bus/cycle lane flow rate not empty
-            if direction_config('bus_cycle_lane', False):
+            if direction_config.get('bus_cycle_lane', False):
                 flow_rate = direction_config.get('bus_cycle_flow_rate')
                 if flow_rate is None:
                     errors.append(f"Flow rate for bus/cycle lane must be non-empty.")
             # CONDITIONAL - pedestrian crossing duration & requests not empty
-            if direction_config('has_crossing', False):
-                crossing_duration = direction_config.get('crossing_duration')
-                crossing_requests = direction_config.get('crossing_requests')
+            if direction_config.get('has_crossing', False):
+                crossing_duration = direction_config.get('crossing_duration', None)
+                crossing_requests = direction_config.get('crossing_requests', None)
                 if crossing_duration is None:
                     errors.append(f"Crossing duration for {direction} must be non-empty.")
                 if crossing_requests is None:
@@ -68,7 +68,7 @@ class JunctionConfigurationInput:
         for direction in ['north', 'south', 'east', 'west']:
             if not config.get(direction, {}).get('has_crossing', False):
                 continue
-            duration = config.get(direction, {}).get(direction, {}).get('crossing_duration', 0)
+            duration = config.get(direction, {}).get('crossing_duration', 0)
             if not isinstance(duration, int) or not (10 <= duration <= 60):
                 errors.append(f"Crossing duration for {direction} must be an integer and between 10 and 60 seconds.")
 
@@ -95,9 +95,9 @@ class JunctionConfigurationInput:
 
         # 11) Validate junction name is a non-empty string and is unique (doesn't already exist)
         if not junction_config_name or not isinstance(junction_config_name, str):
-            return("Junction configuration name must be a non-empty string.")
+            errors.append("Junction configuration name must be a non-empty string.")
         if junction_config_name in existing_junction_config_names:
-            return(f"Junction configuration name '{traffic_config_name}' already exists.")
+            errors.append(f"Junction configuration name '{junction_config_name}' already exists.")
 
 
         return {'success': len(errors) == 0, 'errors': errors}

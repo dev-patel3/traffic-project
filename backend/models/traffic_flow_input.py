@@ -6,7 +6,8 @@ class TrafficFlowInput:
         self.trafficFlow = traffic_flow  
         self.errors: str = ""  
 
-    def validateFlowRates(self, data) -> bool:
+    # set for unique names
+    def validateFlowRates(self, data: dict, existing_traffic_config_names: set) -> dict:
         """
         This is how input data is validated for traffic flow inputs.
         """
@@ -52,9 +53,11 @@ class TrafficFlowInput:
 
         # 4) Validate that name for traffic flow configuration is a non-empty string and is unique (doesn't already exist) 
         if not traffic_config_name or not isinstance(traffic_config_name, str):
-            return("Traffic configuration name must be a non-empty string.")
+            errors.append("Traffic configuration name must be a non-empty string.")
+        
+        #Checking if traffic configuration name already exists
         if traffic_config_name in existing_traffic_config_names:
-            return(f"Traffic configuration name '{traffic_config_name}' already exists.")
+            errors.append(f"Traffic configuration name '{traffic_config_name}' already exists.")
 
         return {'success': len(errors) == 0, 'errors': errors}
 
