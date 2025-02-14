@@ -34,17 +34,6 @@ const HomePage = ({ onNavigate }) => {
           <div className="p-12">
             <JunctionPlaceholder />
           </div>
-
-          {/* Get Started Button */}
-          <div className="px-12 pb-12 flex justify-center">
-            <button
-              onClick={() => onNavigate('traffic')}
-              className="px-8 py-3 text-white rounded-md"
-              style={{ backgroundColor: '#313131' }}
-            >
-              Get Started
-            </button>
-          </div>
         </Card>
       </main>
     </div>
