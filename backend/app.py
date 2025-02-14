@@ -12,12 +12,12 @@ CORS(app)
 def test():
     return {'message': 'Connected to Flask!'}
 
-@app.route('/api/delete_configuration/<name>', methods=['DELETE'])
-def delete_configuration(name):
-    completed = history_config.deleteConfiguration(name)
-    if completed:
-        return jsonify({'message' : 'The configuration was deleted successfully'}), 200
-    return jsonify(['error' : 'The Configuration could not be found']), 404
+# @app.route('/api/delete_configuration/<name>', methods=['DELETE'])
+# def delete_configuration(name):
+#     completed = history_config.deleteConfiguration(name)
+#     if completed:
+#         return jsonify({'message' : 'The configuration was deleted successfully'}), 200
+#     return jsonify(['error' : 'The Configuration could not be found']), 404
 
 class TrafficJunctionCalculator:
     """
