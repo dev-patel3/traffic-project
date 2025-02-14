@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
 
 const TrafficDirectionSection = ({ direction }) => {
+  const [exitFlows, setExitFlows] = useState({});
+
   const getExitDirections = (currentDirection) => {
     const allDirections = ['North', 'East', 'South', 'West'];
     return allDirections.filter(dir => dir !== getOppositeDirection(currentDirection));
@@ -18,10 +20,27 @@ const TrafficDirectionSection = ({ direction }) => {
     return opposites[direction];
   };
 
+  const handleInputChange = (exitDir, value) => {
+    const numValue = value === '' ? 0 : parseInt(value, 10);
+    setExitFlows(prev => ({
+      ...prev,
+      [exitDir]: isNaN(numValue) ? 0 : numValue
+    }));
+  };
+
+  const calculateTotal = () => {
+    return Object.values(exitFlows).reduce((sum, current) => sum + current, 0);
+  };
+
   return (
     <Card className="p-6 shadow-sm bg-white border-gray-100">
       <div className="space-y-6">
-        <h2 className="text-lg font-medium">{direction} Traffic Flow</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-medium">{direction} Traffic Flow</h2>
+          <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded">
+            Total: {calculateTotal()} vph
+          </span>
+        </div>
         <div className="space-y-4">
           {getExitDirections(direction).map((exitDir) => (
             <div key={exitDir}>
@@ -29,8 +48,12 @@ const TrafficDirectionSection = ({ direction }) => {
                 Exiting {exitDir}
               </label>
               <Input
+                type="number"
+                min="0"
                 placeholder={`Total traffic headed ${exitDir}`}
                 className="max-w-2xl"
+                value={exitFlows[exitDir] || ''}
+                onChange={(e) => handleInputChange(exitDir, e.target.value)}
               />
             </div>
           ))}
