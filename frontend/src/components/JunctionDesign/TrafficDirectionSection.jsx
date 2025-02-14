@@ -3,8 +3,6 @@ import { Input } from '../ui/input';
 import { Card } from '../ui/card';
 
 const TrafficDirectionSection = ({ direction }) => {
-  const [exitFlows, setExitFlows] = useState({});
-
   const getExitDirections = (currentDirection) => {
     const allDirections = ['North', 'East', 'South', 'West'];
     return allDirections.filter(dir => dir !== getOppositeDirection(currentDirection));
@@ -19,6 +17,13 @@ const TrafficDirectionSection = ({ direction }) => {
     };
     return opposites[direction];
   };
+
+  const initialExitFlows = getExitDirections(direction).reduce((acc, dir) => {
+    acc[dir] = 0;
+    return acc;
+  }, {});
+
+  const [exitFlows, setExitFlows] = useState(initialExitFlows);
 
   const handleInputChange = (exitDir, value) => {
     const numValue = value === '' ? 0 : parseInt(value, 10);
@@ -50,9 +55,9 @@ const TrafficDirectionSection = ({ direction }) => {
               <Input
                 type="number"
                 min="0"
-                placeholder={`Total traffic headed ${exitDir}`}
+                placeholder="0"
                 className="max-w-2xl"
-                value={exitFlows[exitDir] || ''}
+                value={exitFlows[exitDir]}
                 onChange={(e) => handleInputChange(exitDir, e.target.value)}
               />
             </div>
