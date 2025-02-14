@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from history_configuration import HistoryConfiguration
+from models.history_configuration import HistoryConfiguration
 
 from typing import Dict, List, Union
 import math

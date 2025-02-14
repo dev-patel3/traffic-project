@@ -1,4 +1,4 @@
-from junction_config import JunctionConfiguration
+from models.junction_config import JunctionConfiguration
 
 class HistoryConfiguration:
     def __init__(self):
