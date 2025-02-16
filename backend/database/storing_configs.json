@@ -2,24 +2,24 @@
   "traffic_flow_configurations": {
     "TrafficFlow1": {
       "northbound": {
-        "exit_north": 0,
-        "exit_east": 0,
-        "exit_west": 0
+        "exit_north": 2,
+        "exit_east": 5,
+        "exit_west":10
       },
       "eastbound": {
-        "exit_east": 0,
-        "exit_north": 0,
-        "exit_south": 0
+        "exit_east": 45,
+        "exit_north": 23,
+        "exit_south": 12
       },
       "southbound": {
-        "exit_south": 0,
-        "exit_east": 0,
-        "exit_west": 0
+        "exit_south": 12,
+        "exit_east": 11,
+        "exit_west": 87
       },
       "westbound": {
-        "exit_west": 0,
-        "exit_north": 0,
-        "exit_south": 0
+        "exit_west": 23,
+        "exit_north": 33,
+        "exit_south": 45
       }
     }
   },

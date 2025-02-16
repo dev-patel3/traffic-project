@@ -1,13 +1,126 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from models.history_configuration import HistoryConfiguration
+import json
+import os
 
 from typing import Dict, List, Union
 import math
 
-app = Flask(__name__)
-CORS(app)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+app = Flask(__name__)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:3000"],  # Allow requests from React dev server
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
+
+
+# Loading configurations directly
+def load_configs():
+    try:
+        json_path = os.path.join("database", "storing_configs.json")
+        if not os.path.exists(json_path):
+            print(f"File not found: {json_path}")
+            return []
+            
+        with open(json_path, "r") as file:
+            data = json.load(file)
+            return data
+    except Exception as e:
+        print(f"Error loading configurations: {e}")
+        return []
+
+@app.route('/api/traffic-flows', methods=['GET'])
+def get_traffic_flows():
+    """Gets all traffic flow configurations."""
+    try:
+        # Load JSON data
+        with open(os.path.join(BASE_DIR, 'database', 'storing_configs.json'), "r") as file:
+            data = json.load(file)
+        
+        # Transform the data for frontend
+        traffic_flows = []
+        for name, flow in data.get("traffic_flow_configurations", {}).items():
+            # Calculate total VPH for each direction
+            traffic_flows.append({
+                "id": name,
+                "name": name,
+                "northVPH": sum(flow["northbound"].values()),
+                "southVPH": sum(flow["southbound"].values()),
+                "eastVPH": sum(flow["eastbound"].values()),
+                "westVPH": sum(flow["westbound"].values()),
+                "junctionCount": sum(
+                    1 for junction in data.get("junction_configurations", {}).values()
+                    if junction["traffic_flow_config"] == name
+                )
+            })
+            
+        return jsonify(traffic_flows)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/traffic-flows/<flow_id>/junctions', methods=['GET'])
+def get_junction_configurations(flow_id):
+    """Gets junction configurations for a specific traffic flow."""
+    try:
+        # Load JSON data
+        with open(os.path.join(BASE_DIR, 'database', 'storing_configs.json'), "r") as file:
+            data = json.load(file)
+            
+        # Process junction configurations
+        junctions = []
+        for name, junction in data.get("junction_configurations", {}).items():
+            if junction["traffic_flow_config"] == flow_id:
+                directions = ["northbound", "southbound", "eastbound", "westbound"]
+                
+                junctions.append({
+                    "id": name,
+                    "name": name,
+                    "lanes": round(sum(junction[d]["num_lanes"] for d in directions) / len(directions)),
+                    "hasLeftTurnLanes": any(junction[d].get("enable_left_turn_lane", False) for d in directions),
+                    "hasBusCycleLanes": any(junction[d].get("enable_bus_cycle_lane", False) for d in directions),
+                    "avgWaitTime": 45,
+                    "maxQueueLength": 15
+                })
+        
+        return jsonify(junctions)
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/traffic-flows/<flow_id>', methods=['DELETE'])
+def delete_traffic_flow_config(flow_id):
+    """Deletes a traffic flow and its associated junctions."""
+    try:
+        # Load and update data
+        with open(os.path.join(BASE_DIR, 'database', 'storing_configs.json'), "r") as file:
+            data = json.load(file)
+        
+        if flow_id not in data.get("traffic_flow_configurations", {}):
+            return jsonify({"error": "Traffic flow not found"}), 404
+            
+        # Remove flow and associated junctions
+        del data["traffic_flow_configurations"][flow_id]
+        data["junction_configurations"] = {
+            name: junction
+            for name, junction in data.get("junction_configurations", {}).items()
+            if junction["traffic_flow_config"] != flow_id
+        }
+        
+        # Save updated data
+        with open(os.path.join(BASE_DIR, 'database', 'storing_configs.json'), "w") as file:
+            json.dump(data, file, indent=3)
+        
+        return jsonify({"message": "Traffic flow and associated junctions deleted successfully"})
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 @app.route('/api/test')
 def test():
     return {'message': 'Connected to Flask!'}
