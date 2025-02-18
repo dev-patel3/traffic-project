@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
 import { Save } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
 import TrafficDirectionSection from './TrafficDirectionSection';
 
-const TrafficConfigPage = ({ onNavigate, previousPage }) => {
+const TrafficConfigPage = ({ onNavigate, previousPage, editFlowId = null }) => {
   const [configName, setConfigName] = useState('');
   const [directionData, setDirectionData] = useState({
     Northbound: { total: 0, exits: {} },
@@ -15,6 +15,55 @@ const TrafficConfigPage = ({ onNavigate, previousPage }) => {
   });
   const [errors, setErrors] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!editFlowId);
+
+  useEffect(() => {
+    const fetchExistingConfig = async () => {
+      if (!editFlowId) return;
+      
+      try {
+        setIsLoading(true);
+        const response = await fetch(`http://localhost:5000/api/traffic-flows/${editFlowId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch configuration');
+        }
+        
+        const data = await response.json();
+        
+        // Set configuration name
+        setConfigName(data.name);
+        
+        // Transform API data to match our state structure
+        const transformedData = {
+          Northbound: {
+            total: data.flows.northbound.total || 0,
+            exits: data.flows.northbound.exits || {}
+          },
+          Eastbound: {
+            total: data.flows.eastbound.total || 0,
+            exits: data.flows.eastbound.exits || {}
+          },
+          Southbound: {
+            total: data.flows.southbound.total || 0,
+            exits: data.flows.southbound.exits || {}
+          },
+          Westbound: {
+            total: data.flows.westbound.total || 0,
+            exits: data.flows.westbound.exits || {}
+          }
+        };
+        
+        setDirectionData(transformedData);
+      } catch (error) {
+        setErrors([`Failed to load configuration: ${error.message}`]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchExistingConfig();
+  }, [editFlowId]);
 
   const handleDirectionUpdate = (direction, data) => {
     setDirectionData(prev => ({
@@ -26,21 +75,17 @@ const TrafficConfigPage = ({ onNavigate, previousPage }) => {
   const validateForm = () => {
     const newErrors = [];
 
-    // Check configuration name
     if (!configName.trim()) {
       newErrors.push('Configuration name is required');
     }
 
-    // Check traffic flows
     Object.entries(directionData).forEach(([direction, data]) => {
-      // Check if total traffic flow is within bounds
       if (data.total < 0 || data.total > 2000) {
         newErrors.push(`${direction} traffic flow must be between 0 and 2000 VPH`);
       }
 
-      // Check if exit flows sum up to total
       const exitSum = Object.values(data.exits).reduce((sum, val) => sum + val, 0);
-      if (exitSum !== data.total) {
+      if (Math.abs(exitSum - data.total) > 0.01) { // Using small epsilon for float comparison
         newErrors.push(`${direction} exit flows must sum to total traffic flow`);
       }
     });
@@ -61,8 +106,14 @@ const TrafficConfigPage = ({ onNavigate, previousPage }) => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/validate', {
-        method: 'POST',
+      const endpoint = editFlowId 
+        ? `http://localhost:5000/api/traffic-flows/${editFlowId}`
+        : 'http://localhost:5000/api/traffic-flows';
+        
+      const method = editFlowId ? 'PUT' : 'POST';
+
+      const response = await fetch(endpoint, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -92,18 +143,25 @@ const TrafficConfigPage = ({ onNavigate, previousPage }) => {
       const data = await response.json();
 
       if (!data.success) {
-        setErrors(data.errors || ['Validation failed']);
+        setErrors(data.errors || ['Save failed']);
         setIsSubmitting(false);
         return;
       }
 
-      // If validation successful, proceed to junction design
-      onNavigate('junctionDesign');
+      onNavigate('home');
     } catch (error) {
-      setErrors(['Failed to validate configuration. Please try again.']);
+      setErrors(['Failed to save configuration. Please try again.']);
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-gray-600">Loading configuration...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -123,7 +181,9 @@ const TrafficConfigPage = ({ onNavigate, previousPage }) => {
 
           <Card className="p-6 shadow-sm bg-white border-gray-100">
             <div className="space-y-4">
-              <h2 className="text-lg font-medium">Configuration Name</h2>
+              <h2 className="text-lg font-medium">
+                {editFlowId ? 'Edit Traffic Configuration' : 'New Traffic Configuration'}
+              </h2>
               <Input
                 placeholder="Name your traffic configuration"
                 className="max-w-2xl"
@@ -134,22 +194,14 @@ const TrafficConfigPage = ({ onNavigate, previousPage }) => {
             </div>
           </Card>
 
-          <TrafficDirectionSection 
-            direction="Northbound" 
-            onUpdate={(data) => handleDirectionUpdate('Northbound', data)}
-          />
-          <TrafficDirectionSection 
-            direction="Eastbound" 
-            onUpdate={(data) => handleDirectionUpdate('Eastbound', data)}
-          />
-          <TrafficDirectionSection 
-            direction="Southbound" 
-            onUpdate={(data) => handleDirectionUpdate('Southbound', data)}
-          />
-          <TrafficDirectionSection 
-            direction="Westbound" 
-            onUpdate={(data) => handleDirectionUpdate('Westbound', data)}
-          />
+          {['Northbound', 'Eastbound', 'Southbound', 'Westbound'].map(direction => (
+            <TrafficDirectionSection 
+              key={direction}
+              direction={direction}
+              initialData={directionData[direction]}
+              onUpdate={(data) => handleDirectionUpdate(direction, data)}
+            />
+          ))}
           
           <div className="flex justify-end space-x-4">
             <button
@@ -167,7 +219,13 @@ const TrafficConfigPage = ({ onNavigate, previousPage }) => {
               disabled={isSubmitting}
             >
               <Save className="h-5 w-5" />
-              <span>{isSubmitting ? 'Saving...' : 'Save Configuration'}</span>
+              <span>
+                {isSubmitting 
+                  ? 'Saving...' 
+                  : editFlowId 
+                    ? 'Update Configuration' 
+                    : 'Save Configuration'}
+              </span>
             </button>
           </div>
         </form>

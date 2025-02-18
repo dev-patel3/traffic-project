@@ -2,10 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
 
-const TrafficDirectionSection = ({ direction, onUpdate }) => {
-  const [totalFlow, setTotalFlow] = useState(0);
-  const [exitFlows, setExitFlows] = useState({});
+const TrafficDirectionSection = ({ direction, initialData = null, onUpdate }) => {
+  const [totalFlow, setTotalFlow] = useState(initialData?.total || 0);
+  const [exitFlows, setExitFlows] = useState(initialData?.exits || {});
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (initialData) {
+      setTotalFlow(initialData.total);
+      setExitFlows(initialData.exits);
+    }
+  }, [initialData]);
 
   const getExitDirections = (currentDirection) => {
     const allDirections = ['North', 'East', 'South', 'West'];
@@ -23,16 +30,17 @@ const TrafficDirectionSection = ({ direction, onUpdate }) => {
   };
 
   useEffect(() => {
-    // Initialize exit flows
-    const initialExits = getExitDirections(direction).reduce((acc, dir) => {
-      acc[dir.toLowerCase()] = 0;
-      return acc;
-    }, {});
-    setExitFlows(initialExits);
+    // Initialize exit flows if not set
+    if (Object.keys(exitFlows).length === 0) {
+      const initialExits = getExitDirections(direction).reduce((acc, dir) => {
+        acc[dir.toLowerCase()] = 0;
+        return acc;
+      }, {});
+      setExitFlows(initialExits);
+    }
   }, [direction]);
 
   useEffect(() => {
-    // Update parent component whenever values change
     onUpdate({
       total: totalFlow,
       exits: exitFlows
@@ -61,7 +69,6 @@ const TrafficDirectionSection = ({ direction, onUpdate }) => {
     };
     setExitFlows(newExitFlows);
 
-    // Validate total
     const exitSum = Object.values(newExitFlows).reduce((sum, val) => sum + val, 0);
     if (exitSum > totalFlow) {
       setError('Sum of exit flows cannot exceed total traffic flow');
@@ -115,7 +122,7 @@ const TrafficDirectionSection = ({ direction, onUpdate }) => {
                 type="number"
                 min="0"
                 max={totalFlow}
-                value={exitFlows[exitDir.toLowerCase()] || 0}
+                value={exitFlows[exitDir.toLowerCase()] || initialData?.exits[exitDir.toLowerCase()] || 0}
                 onChange={(e) => handleExitFlowChange(exitDir, e.target.value)}
                 placeholder="0"
                 className="max-w-2xl"

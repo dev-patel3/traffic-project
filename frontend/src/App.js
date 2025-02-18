@@ -8,21 +8,26 @@ import HomePage from './components/JunctionDesign/HomePage';
 import SimulationPage from './components/JunctionDesign/JunctionSimulation';
 import SavedJunctions from './components/JunctionDesign/SavedJunctions';
 import HelpPage from './components/JunctionDesign/HelpPage';
+import EditTrafficConfig from './components/JunctionDesign/EditTrafficConfig';
 
 function App() {
   const [message, setMessage] = useState('');
   const [currentPage, setCurrentPage] = useState('home');
   const [previousPage, setPreviousPage] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [editConfigId, setEditConfigId] = useState(null);
 
   useEffect(() => {
     axios.get('http://localhost:5000/api/test')
       .then(response => setMessage(response.data.message));
   }, []);
 
-  const navigateTo = (page) => {
+  const navigateTo = (page, params = {}) => {
     setPreviousPage(currentPage);
     setCurrentPage(page);
+    if (params.configId) {
+      setEditConfigId(params.configId);
+    }
   };
 
   const handleBack = () => {
@@ -33,6 +38,7 @@ function App() {
     if (previousPage) {
       setCurrentPage(previousPage);
       setPreviousPage(null);
+      setEditConfigId(null);
     }
   };
 
@@ -40,6 +46,7 @@ function App() {
     home: 'Traffic Junction Modeler',
     saved: 'Saved Configurations',
     traffic: 'New Traffic Configuration',
+    editTraffic: 'Edit Traffic Configuration',
     junctionDesign: 'Junction Design',
     simulation: 'Junction Simulation',
     junctionSaved: 'Saved Junctions',
@@ -107,7 +114,8 @@ function App() {
         {currentPage === 'home' && <HomePage onNavigate={navigateTo} />}
         {currentPage === 'saved' && <SavedConfigurations onNavigate={navigateTo} />}
         {currentPage === 'traffic' && <TrafficConfigPage onNavigate={navigateTo} previousPage={previousPage}/>}
-        {currentPage === 'junctionDesign' && <JunctionDesign onNavigate={navigateTo} previousPage ={previousPage}/>}
+        {currentPage === 'editTraffic' && <EditTrafficConfig configId={editConfigId} onNavigate={navigateTo} />}
+        {currentPage === 'junctionDesign' && <JunctionDesign onNavigate={navigateTo} previousPage={previousPage}/>}
         {currentPage === 'simulation' && <SimulationPage onNavigate={navigateTo} />}
         {currentPage === 'junctionSaved' && <SavedJunctions onNavigate={navigateTo} />}
       </div>

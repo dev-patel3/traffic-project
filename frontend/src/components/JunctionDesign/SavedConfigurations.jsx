@@ -146,11 +146,11 @@ const SavedConfigurations = ({ onNavigate }) => {
                     </p>
                   </div>
                   <div className="flex space-x-2">
-                    <button 
+                  <button 
                       className="p-2 hover:bg-gray-100 rounded-full"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onNavigate('traffic', { flowId: flow.id });
+                        onNavigate('editTraffic', { configId: flow.id });
                       }}
                       disabled={deleteInProgress === flow.id}
                     >
