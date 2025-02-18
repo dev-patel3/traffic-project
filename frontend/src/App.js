@@ -9,6 +9,8 @@ import SimulationPage from './components/JunctionDesign/JunctionSimulation';
 import SavedJunctions from './components/JunctionDesign/SavedJunctions';
 import HelpPage from './components/JunctionDesign/HelpPage';
 import EditTrafficConfig from './components/JunctionDesign/EditTrafficConfig';
+import EditJunctionDesign from './components/JunctionDesign/EditJunctionDesign';
+
 
 function App() {
   const [message, setMessage] = useState('');
@@ -50,7 +52,8 @@ function App() {
     junctionDesign: 'Junction Design',
     simulation: 'Junction Simulation',
     junctionSaved: 'Saved Junctions',
-    help: 'Help Guide'
+    help: 'Help Guide',
+    editJunction: 'Edit Junction Design',
   };
 
   const shouldShowBack = currentPage !== 'home' || showHelp;
@@ -118,6 +121,12 @@ function App() {
         {currentPage === 'junctionDesign' && <JunctionDesign onNavigate={navigateTo} previousPage={previousPage}/>}
         {currentPage === 'simulation' && <SimulationPage onNavigate={navigateTo} />}
         {currentPage === 'junctionSaved' && <SavedJunctions onNavigate={navigateTo} />}
+        {currentPage === 'editJunction' && (
+  <EditJunctionDesign 
+    junctionId={editConfigId} 
+    onNavigate={navigateTo} 
+  />
+)}
       </div>
 
       <div className="p-4">

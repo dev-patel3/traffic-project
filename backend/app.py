@@ -385,6 +385,249 @@ def delete_junction_configuration(flow_id, junction_id):
     except Exception as e:
         print(f"Error in delete_junction_configuration: {str(e)}")
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/junctions', methods=['GET'])
+def get_all_junctions():
+    """Gets all junction configurations."""
+    try:
+        data = load_database()
+        junctions = []
+        
+        for junction_id, junction in data.get("junction_configurations", {}).items():
+            # Calculate summary metrics for each junction
+            max_lanes = max(
+                junction["northbound"]["num_lanes"],
+                junction["southbound"]["num_lanes"],
+                junction["eastbound"]["num_lanes"],
+                junction["westbound"]["num_lanes"]
+            )
+            
+            has_left_turn = any(
+                junction[direction].get("enable_left_turn_lane", False)
+                for direction in ["northbound", "southbound", "eastbound", "westbound"]
+            )
+            
+            has_bus_cycle = any(
+                junction[direction].get("enable_bus_cycle_lane", False)
+                for direction in ["northbound", "southbound", "eastbound", "westbound"]
+            )
+            
+            junctions.append({
+                "id": junction_id,
+                "name": junction.get("name", junction_id),
+                "traffic_flow_config": junction["traffic_flow_config"],
+                "max_lanes": max_lanes,
+                "has_left_turn": has_left_turn,
+                "has_bus_cycle": has_bus_cycle,
+                "northbound": junction["northbound"],
+                "southbound": junction["southbound"],
+                "eastbound": junction["eastbound"],
+                "westbound": junction["westbound"]
+            })
+            
+        return jsonify(junctions)
+        
+    except Exception as e:
+        print(f"Error in get_all_junctions: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/junctions/<junction_id>', methods=['GET'])
+def get_junction(junction_id):
+    """Gets a specific junction configuration."""
+    try:
+        data = load_database()
+        
+        # Get the specific junction
+        junction = data.get("junction_configurations", {}).get(junction_id)
+        if not junction:
+            return jsonify({"error": "Junction not found"}), 404
+            
+        return jsonify({
+            "id": junction_id,
+            "name": junction.get("name", junction_id),
+            "traffic_flow_config": junction["traffic_flow_config"],
+            "northbound": junction["northbound"],
+            "southbound": junction["southbound"],
+            "eastbound": junction["eastbound"],
+            "westbound": junction["westbound"]
+        })
+        
+    except Exception as e:
+        print(f"Error in get_junction: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/junctions', methods=['POST'])
+def create_junction():
+    """Creates a new junction configuration."""
+    try:
+        data = load_database()
+        new_junction = request.get_json()
+        
+        # Validate required fields
+        required_fields = ["name", "traffic_flow_config", "northbound", "southbound", "eastbound", "westbound"]
+        for field in required_fields:
+            if field not in new_junction:
+                return jsonify({
+                    "success": False,
+                    "error": f"Missing required field: {field}"
+                }), 400
+        
+        # Check if traffic flow exists
+        if new_junction["traffic_flow_config"] not in data.get("traffic_flow_configurations", {}):
+            return jsonify({
+                "success": False,
+                "error": "Referenced traffic flow configuration does not exist"
+            }), 400
+        
+        # Generate new junction ID
+        junction_id = f"junction_{len(data.get('junction_configurations', {})) + 1}"
+        
+        # Add the junction
+        if "junction_configurations" not in data:
+            data["junction_configurations"] = {}
+            
+        data["junction_configurations"][junction_id] = {
+            "name": new_junction["name"],
+            "traffic_flow_config": new_junction["traffic_flow_config"],
+            "northbound": new_junction["northbound"],
+            "southbound": new_junction["southbound"],
+            "eastbound": new_junction["eastbound"],
+            "westbound": new_junction["westbound"]
+        }
+        
+        # Save the updated data
+        save_database(data)
+        
+        return jsonify({
+            "success": True,
+            "message": "Junction created successfully",
+            "junction_id": junction_id
+        })
+        
+    except Exception as e:
+        print(f"Error in create_junction: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/junctions/<junction_id>', methods=['PUT'])
+def update_junction(junction_id):
+    """Updates an existing junction configuration."""
+    try:
+        data = load_database()
+        update_config = request.get_json()
+        
+        # Check if junction exists
+        if junction_id not in data.get("junction_configurations", {}):
+            return jsonify({
+                "success": False,
+                "error": "Junction not found"
+            }), 404
+        
+        # Validate required fields
+        required_fields = ["name", "traffic_flow_config", "northbound", "southbound", "eastbound", "westbound"]
+        for field in required_fields:
+            if field not in update_config:
+                return jsonify({
+                    "success": False,
+                    "error": f"Missing required field: {field}"
+                }), 400
+        
+        # Check if referenced traffic flow exists
+        if update_config["traffic_flow_config"] not in data.get("traffic_flow_configurations", {}):
+            return jsonify({
+                "success": False,
+                "error": "Referenced traffic flow configuration does not exist"
+            }), 400
+        
+        # Update the junction
+        data["junction_configurations"][junction_id] = {
+            "name": update_config["name"],
+            "traffic_flow_config": update_config["traffic_flow_config"],
+            "northbound": update_config["northbound"],
+            "southbound": update_config["southbound"],
+            "eastbound": update_config["eastbound"],
+            "westbound": update_config["westbound"]
+        }
+        
+        # Save the updated data
+        save_database(data)
+        
+        return jsonify({
+            "success": True,
+            "message": "Junction updated successfully"
+        })
+        
+    except Exception as e:
+        print(f"Error in update_junction: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/junctions/<junction_id>', methods=['DELETE'])
+def delete_junction(junction_id):
+    """Deletes a junction configuration."""
+    try:
+        data = load_database()
+        
+        # Check if junction exists
+        if junction_id not in data.get("junction_configurations", {}):
+            return jsonify({
+                "success": False,
+                "error": "Junction not found"
+            }), 404
+        
+        # Delete the junction
+        del data["junction_configurations"][junction_id]
+        
+        # Save the updated data
+        save_database(data)
+        
+        return jsonify({
+            "success": True,
+            "message": "Junction deleted successfully"
+        })
+        
+    except Exception as e:
+        print(f"Error in delete_junction: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/junctions/traffic-flow/<flow_id>', methods=['GET'])
+def get_junctions_for_flow(flow_id):
+    """Gets all junctions associated with a specific traffic flow."""
+    try:
+        data = load_database()
+        
+        # Check if traffic flow exists
+        if flow_id not in data.get("traffic_flow_configurations", {}):
+            return jsonify({
+                "success": False,
+                "error": "Traffic flow not found"
+            }), 404
+        
+        # Get all junctions for this flow
+        junctions = []
+        for junction_id, junction in data.get("junction_configurations", {}).items():
+            if junction["traffic_flow_config"] == flow_id:
+                junctions.append({
+                    "id": junction_id,
+                    "name": junction.get("name", junction_id),
+                    "northbound": junction["northbound"],
+                    "southbound": junction["southbound"],
+                    "eastbound": junction["eastbound"],
+                    "westbound": junction["westbound"]
+                })
+        
+        return jsonify(junctions)
+        
+    except Exception as e:
+        print(f"Error in get_junctions_for_flow: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     init_database()  # Initialize database on startup
