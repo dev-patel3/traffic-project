@@ -137,7 +137,7 @@ def deleting_junction_configuration(name: str) -> bool:
 # saving a new JUNCTION congfig to the JSON file
 # making sure no duplicate names exist & it belongs to a valid traffic flow configuration
 
-def saving_junction_configuration(junction: JunctionConfiguation) -> bool:
+def saving_junction_configuration(junction: JunctionConfiguration) -> bool:
 
     data = loading_junctions_configurations()
 

@@ -54,6 +54,10 @@ class TrafficFlowInput:
         # 4) Validate that name for traffic flow configuration is a non-empty string and is unique (doesn't already exist) 
         if not traffic_config_name or not isinstance(traffic_config_name, str):
             errors.append("Traffic configuration name must be a non-empty string.")
+
+        # 5) Validate that the number of existing traffic configurations is <= 9 (maximum is 10)
+        if len(existing_traffic_config_names) >= 10:
+            errors.append(f"The maximum number of traffic configurations (10) are already being stored.")
         
         #Checking if traffic configuration name already exists
         if traffic_config_name in existing_traffic_config_names:

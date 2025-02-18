@@ -6,7 +6,7 @@ class JunctionConfigurationInput:
         self.junctionConfig = junctionConfig  
         self.errors = "" 
 
-    def validateConfiguration(self, data, existing_junction_config_names: set) -> dict:
+    def validateConfiguration(self, data, existing_junction_config_names: set, existing_traffic_config_names: set) -> dict:
         """
         This is how input data is validated for junction configuration inputs.
         """
@@ -87,13 +87,16 @@ class JunctionConfigurationInput:
 
         # 9) Validate number of outgoing lanes matches maximum incoming lanes, for all directions
 
-
-
         # 10) Validate that each incoming lane routees to a dedicated outgoing lane (no merging permitted)
-
             
+        # 11) Validate that for the traffic flow configuration of the junction, the maximum number of 10 has not been reached already
+        traffic_flow_name = data.get('traffic_flow_name', None)
+        # for that traffic flow, check in the set of all existing junction name, how many junctions exist with the same traffic flow name (if >= 10, append an error)
+        count = sum(1 for junction_name in existing_junction_config_names if existing_junction_config_names[junction_name].get('traffic_flow_name', None) == traffic_flow_name)
+        if (count >= 10):
+            errors.append(f"Traffic flow configuration {traffic_flow_name} has already got the maximum number of junction onfigurations stored (10).")
 
-        # 11) Validate junction name is a non-empty string and is unique (doesn't already exist)
+        # 12) Validate junction name is a non-empty string and is unique (doesn't already exist)
         if not junction_config_name or not isinstance(junction_config_name, str):
             errors.append("Junction configuration name must be a non-empty string.")
         if junction_config_name in existing_junction_config_names:
