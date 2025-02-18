@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
 
-const TrafficDirectionSection = ({ direction }) => {
+const TrafficDirectionSection = ({ direction, onUpdate }) => {
+  const [totalFlow, setTotalFlow] = useState(0);
+  const [exitFlows, setExitFlows] = useState({});
+  const [error, setError] = useState('');
+
   const getExitDirections = (currentDirection) => {
     const allDirections = ['North', 'East', 'South', 'West'];
     return allDirections.filter(dir => dir !== getOppositeDirection(currentDirection));
@@ -18,22 +22,57 @@ const TrafficDirectionSection = ({ direction }) => {
     return opposites[direction];
   };
 
-  const initialExitFlows = getExitDirections(direction).reduce((acc, dir) => {
-    acc[dir] = 0;
-    return acc;
-  }, {});
+  useEffect(() => {
+    // Initialize exit flows
+    const initialExits = getExitDirections(direction).reduce((acc, dir) => {
+      acc[dir.toLowerCase()] = 0;
+      return acc;
+    }, {});
+    setExitFlows(initialExits);
+  }, [direction]);
 
-  const [exitFlows, setExitFlows] = useState(initialExitFlows);
+  useEffect(() => {
+    // Update parent component whenever values change
+    onUpdate({
+      total: totalFlow,
+      exits: exitFlows
+    });
+  }, [totalFlow, exitFlows, onUpdate]);
 
-  const handleInputChange = (exitDir, value) => {
-    const numValue = value === '' ? 0 : parseInt(value, 10);
-    setExitFlows(prev => ({
-      ...prev,
-      [exitDir]: isNaN(numValue) ? 0 : numValue
-    }));
+  const handleTotalFlowChange = (e) => {
+    const value = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
+    if (isNaN(value)) return;
+    
+    if (value < 0 || value > 2000) {
+      setError('Traffic flow must be between 0 and 2000 VPH');
+    } else {
+      setError('');
+    }
+    setTotalFlow(value);
   };
 
-  const calculateTotal = () => {
+  const handleExitFlowChange = (exitDir, value) => {
+    const numValue = value === '' ? 0 : parseInt(value, 10);
+    if (isNaN(numValue)) return;
+
+    const newExitFlows = {
+      ...exitFlows,
+      [exitDir.toLowerCase()]: numValue
+    };
+    setExitFlows(newExitFlows);
+
+    // Validate total
+    const exitSum = Object.values(newExitFlows).reduce((sum, val) => sum + val, 0);
+    if (exitSum > totalFlow) {
+      setError('Sum of exit flows cannot exceed total traffic flow');
+    } else if (exitSum < totalFlow) {
+      setError('Sum of exit flows must equal total traffic flow');
+    } else {
+      setError('');
+    }
+  };
+
+  const calculateExitTotal = () => {
     return Object.values(exitFlows).reduce((sum, current) => sum + current, 0);
   };
 
@@ -43,10 +82,30 @@ const TrafficDirectionSection = ({ direction }) => {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium">{direction} Traffic Flow</h2>
           <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded">
-            Total: {calculateTotal()} vph
+            Total Exits: {calculateExitTotal()} / {totalFlow} vph
           </span>
         </div>
+
+        {error && (
+          <div className="text-red-500 text-sm">{error}</div>
+        )}
+
         <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Total Traffic Flow (VPH)
+            </label>
+            <Input
+              type="number"
+              min="0"
+              max="2000"
+              value={totalFlow}
+              onChange={handleTotalFlowChange}
+              placeholder="Enter total traffic flow (0-2000 VPH)"
+              className="max-w-2xl"
+            />
+          </div>
+
           {getExitDirections(direction).map((exitDir) => (
             <div key={exitDir}>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -55,10 +114,11 @@ const TrafficDirectionSection = ({ direction }) => {
               <Input
                 type="number"
                 min="0"
+                max={totalFlow}
+                value={exitFlows[exitDir.toLowerCase()] || 0}
+                onChange={(e) => handleExitFlowChange(exitDir, e.target.value)}
                 placeholder="0"
                 className="max-w-2xl"
-                value={exitFlows[exitDir]}
-                onChange={(e) => handleInputChange(exitDir, e.target.value)}
               />
             </div>
           ))}

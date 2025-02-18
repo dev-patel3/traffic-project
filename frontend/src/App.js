@@ -106,8 +106,8 @@ function App() {
       <div className="py-6">
         {currentPage === 'home' && <HomePage onNavigate={navigateTo} />}
         {currentPage === 'saved' && <SavedConfigurations onNavigate={navigateTo} />}
-        {currentPage === 'traffic' && <TrafficConfigPage onNavigate={navigateTo} />}
-        {currentPage === 'junctionDesign' && <JunctionDesign onNavigate={navigateTo} />}
+        {currentPage === 'traffic' && <TrafficConfigPage onNavigate={navigateTo} previousPage={previousPage}/>}
+        {currentPage === 'junctionDesign' && <JunctionDesign onNavigate={navigateTo} previousPage ={previousPage}/>}
         {currentPage === 'simulation' && <SimulationPage onNavigate={navigateTo} />}
         {currentPage === 'junctionSaved' && <SavedJunctions onNavigate={navigateTo} />}
       </div>

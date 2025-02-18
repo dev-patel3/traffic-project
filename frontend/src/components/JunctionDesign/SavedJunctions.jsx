@@ -1,36 +1,19 @@
 import React from 'react';
-import { ChevronLeft, Edit2, HelpCircle, Plus } from 'lucide-react';
+import { Edit2, Plus } from 'lucide-react';
 import { Card } from '../ui/card';
+import ConfigInfo from './ConfigInfo';
 
 const SavedJunctionsPage = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-gray-50">
-
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Traffic Data Overview */}
-        <Card className="mb-6 p-6">
-          <div className="grid grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Northbound VPH</h3>
-              <p className="text-2xl font-semibold">200</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Southbound VPH</h3>
-              <p className="text-2xl font-semibold">200</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Eastbound VPH</h3>
-              <p className="text-2xl font-semibold">200</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Westbound VPH</h3>
-              <p className="text-2xl font-semibold">200</p>
-            </div>
-          </div>
-        </Card>
+        <div className="mb-6">
+          <ConfigInfo />
+        </div>
 
         {/* Junction Cards Grid */}
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Junction 1 */}
           <Card className="p-6">
             <div className="space-y-4">
@@ -43,7 +26,10 @@ const SavedJunctionsPage = ({ onNavigate }) => {
               <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
                 <span className="text-gray-500">Junction Preview</span>
               </div>
-              <button className="w-full py-2 px-4 border border-gray-200 rounded-md hover:bg-gray-50">
+              <button 
+                onClick={() => onNavigate('simulation')}
+                className="w-full py-2 px-4 border border-gray-200 rounded-md hover:bg-gray-50"
+              >
                 Run Simulation
               </button>
             </div>
@@ -61,7 +47,10 @@ const SavedJunctionsPage = ({ onNavigate }) => {
               <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
                 <span className="text-gray-500">Junction Preview</span>
               </div>
-              <button className="w-full py-2 px-4 border border-gray-200 rounded-md hover:bg-gray-50">
+              <button 
+                onClick={() => onNavigate('simulation')}
+                className="w-full py-2 px-4 border border-gray-200 rounded-md hover:bg-gray-50"
+              >
                 Run Simulation
               </button>
             </div>
