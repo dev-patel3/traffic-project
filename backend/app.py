@@ -455,7 +455,7 @@ def get_junction(junction_id):
     except Exception as e:
         print(f"Error in get_junction: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
+    
 @app.route('/api/junctions', methods=['POST'])
 def create_junction():
     """Creates a new junction configuration."""

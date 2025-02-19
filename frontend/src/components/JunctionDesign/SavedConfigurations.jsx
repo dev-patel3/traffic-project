@@ -166,14 +166,41 @@ const SavedConfigurations = ({ onNavigate }) => {
                   </div>
                 </div>
               </Card>
-
               {/* Junction Configurations */}
               {selectedFlowId === flow.id && junctionConfigs[flow.id] && (
                 <div className="ml-8 space-y-2">
                   {junctionConfigs[flow.id].map((junction) => (
                     <Card key={junction.id} className="p-4 shadow-sm bg-white border-gray-100">
                       <div className="space-y-1">
-                        <h4 className="font-medium text-gray-900">{junction.name || 'Unnamed Junction'}</h4>
+                        <div className="flex justify-between items-start">
+                          <h4 className="font-medium text-gray-900">{junction.name || 'Unnamed Junction'}</h4>
+                          <div className="flex space-x-2">
+                          <button 
+                              className="p-2 hover:bg-gray-100 rounded-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log('Junction ID being passed:', junction.id); // Debug log 
+                                onNavigate('editJunction', { junctionId: junction.id });
+                              }}
+                              disabled={deleteInProgress === junction.id}
+                            >
+                              <Edit2 className="h-4 w-4 text-gray-600" />
+                            </button>
+                            <button 
+                              className="p-2 hover:bg-gray-100 rounded-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm('Are you sure you want to delete this junction?')) {
+                                  // Add deletion logic here
+                                  console.log('Delete junction:', junction.id);
+                                }
+                              }}
+                              disabled={deleteInProgress === junction.id}
+                            >
+                              <Trash2 className="h-4 w-4 text-gray-600" />
+                            </button>
+                          </div>
+                        </div>
                         <p className="text-sm text-gray-500">
                           Lanes: {junction.lanes}, 
                           Left Turn Lanes: {junction.hasLeftTurnLanes ? 'Yes' : 'No'}, 

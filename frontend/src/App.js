@@ -25,10 +25,12 @@ function App() {
   }, []);
 
   const navigateTo = (page, params = {}) => {
+    console.log('Navigating to:', page, 'with params:', params); // Debug log
     setPreviousPage(currentPage);
     setCurrentPage(page);
-    if (params.configId) {
-      setEditConfigId(params.configId);
+    if (params.junctionId) {
+      console.log('Setting junction ID:', params.junctionId); // Debug log
+      setEditConfigId(params.junctionId);
     }
   };
 
@@ -43,6 +45,8 @@ function App() {
       setEditConfigId(null);
     }
   };
+
+  
 
   const pageTitles = {
     home: 'Traffic Junction Modeler',
@@ -92,15 +96,24 @@ function App() {
             )}
           </div>
           <h1 className="text-xl font-semibold">{pageTitles[currentPage]}</h1>
-          <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-6">
             {shouldShowSaved && (
-              <button 
-                onClick={() => navigateTo('saved')}
-                className="flex items-center space-x-1 hover:text-gray-600"
-              >
-                <FolderOpen className="h-5 w-5" />
-                <span className="text-sm">Saved Configurations</span>
-              </button>
+              <>
+                <button 
+                  onClick={() => navigateTo('saved')}
+                  className="flex items-center space-x-1 hover:text-gray-600"
+                >
+                  <FolderOpen className="h-5 w-5" />
+                  <span className="text-sm">Saved Configurations</span>
+                </button>
+                <button 
+                  onClick={() => navigateTo('junctionSaved')}
+                  className="flex items-center space-x-1 hover:text-gray-600"
+                >
+                  <FolderOpen className="h-5 w-5" />
+                  <span className="text-sm">Saved Junctions</span>
+                </button>
+              </>
             )}
             <button 
               className="flex items-center space-x-1 cursor-pointer"
