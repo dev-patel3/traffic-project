@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ChevronLeft, HelpCircle, FolderOpen } from 'lucide-react';
+import { ChevronLeft, HelpCircle, FolderOpen, Home } from 'lucide-react';
 import JunctionDesign from './components/JunctionDesign/JunctionDesign';
 import TrafficConfigPage from './components/JunctionDesign/TrafficConfigPage';
 import SavedConfigurations from './components/JunctionDesign/SavedConfigurations';
@@ -11,11 +11,10 @@ import HelpPage from './components/JunctionDesign/HelpPage';
 import EditTrafficConfig from './components/JunctionDesign/EditTrafficConfig';
 import EditJunctionDesign from './components/JunctionDesign/EditJunctionDesign';
 
-
 function App() {
   const [message, setMessage] = useState('');
   const [currentPage, setCurrentPage] = useState('home');
-  const [previousPage, setPreviousPage] = useState(null);
+  const [navigationHistory, setNavigationHistory] = useState(['home']);
   const [showHelp, setShowHelp] = useState(false);
   const [editConfigId, setEditConfigId] = useState(null);
   const [navigationParams, setNavigationParams] = useState({});
@@ -27,9 +26,9 @@ function App() {
 
   const navigateTo = (page, params = {}) => {
     console.log('Navigating to:', page, 'with params:', params);
-    setPreviousPage(currentPage);
+    setNavigationHistory(prevHistory => [...prevHistory, page]);
     setCurrentPage(page);
-    setNavigationParams(params);  // Store the params
+    setNavigationParams(params);
   };
 
   const handleBack = () => {
@@ -37,14 +36,19 @@ function App() {
       setShowHelp(false);
       return;
     }
-    if (previousPage) {
+
+    if (navigationHistory.length > 1) {
+      // Remove current page from history and get previous page
+      const newHistory = [...navigationHistory];
+      newHistory.pop(); // Remove current page
+      const previousPage = newHistory[newHistory.length - 1];
+      
+      setNavigationHistory(newHistory);
       setCurrentPage(previousPage);
-      setPreviousPage(null);
       setEditConfigId(null);
+      setNavigationParams({});
     }
   };
-
-  
 
   const pageTitles = {
     home: 'Traffic Junction Modeler',
@@ -87,15 +91,28 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             {shouldShowBack && (
-              <button onClick={handleBack} className="flex items-center space-x-2">
+              <button 
+                onClick={handleBack} 
+                className="flex items-center space-x-2"
+                disabled={navigationHistory.length <= 1}
+              >
                 <ChevronLeft className="h-5 w-5" />
                 <span className="text-sm font-medium">Back</span>
               </button>
             )}
           </div>
           <h1 className="text-xl font-semibold">{pageTitles[currentPage]}</h1>
-            <div className="flex items-center space-x-6">
-            {shouldShowSaved && (
+          <div className="flex items-center space-x-6">
+          {currentPage !== 'home' && (
+            <button 
+              onClick={() => navigateTo('home')}
+              className="flex items-center space-x-1 hover:text-gray-600"
+            >
+              <Home className="h-5 w-5" />
+              <span className="text-sm">Home</span>
+            </button>
+          )}
+          {shouldShowSaved && (
               <>
                 <button 
                   onClick={() => navigateTo('saved')}
@@ -127,21 +144,32 @@ function App() {
       <div className="py-6">
         {currentPage === 'home' && <HomePage onNavigate={navigateTo} />}
         {currentPage === 'saved' && <SavedConfigurations onNavigate={navigateTo} />}
-        {currentPage === 'traffic' && <TrafficConfigPage onNavigate={navigateTo} previousPage={previousPage}/>}
+        {currentPage === 'traffic' && (
+          <TrafficConfigPage 
+            onNavigate={navigateTo} 
+            previousPage={navigationHistory[navigationHistory.length - 2]}
+          />
+        )}
         {currentPage === 'editTraffic' && (
-  <EditTrafficConfig 
-    configId={navigationParams.configId}
-    onNavigate={navigateTo} 
-  />
-)}        {currentPage === 'junctionDesign' && <JunctionDesign onNavigate={navigateTo} previousPage={previousPage}/>}
+          <EditTrafficConfig 
+            configId={navigationParams.configId}
+            onNavigate={navigateTo} 
+          />
+        )}
+        {currentPage === 'junctionDesign' && (
+          <JunctionDesign 
+            onNavigate={navigateTo} 
+            previousPage={navigationHistory[navigationHistory.length - 2]}
+          />
+        )}
         {currentPage === 'simulation' && <SimulationPage onNavigate={navigateTo} />}
         {currentPage === 'junctionSaved' && <SavedJunctions onNavigate={navigateTo} />}
         {currentPage === 'editJunction' && (
-  <EditJunctionDesign 
-    junctionId={navigationParams.junctionId}  // Make sure this matches
-    onNavigate={navigateTo} 
-  />
-)}
+          <EditJunctionDesign 
+            junctionId={navigationParams.junctionId}
+            onNavigate={navigateTo} 
+          />
+        )}
       </div>
 
       <div className="p-4">

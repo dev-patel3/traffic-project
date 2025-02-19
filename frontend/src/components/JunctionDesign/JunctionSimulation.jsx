@@ -1,53 +1,10 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, HelpCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const ResultsDisplay = ({ direction, results }) => (
-  <div className="p-6 bg-white rounded-lg shadow-sm space-y-4">
-    <h3 className="text-lg font-medium">{direction} Results</h3>
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <span className="text-gray-600">Average Wait Time</span>
-          <span className="text-2xl font-bold">{results.avgWaitTime}</span>
-        </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full bg-blue-500" style={{ width: '75%' }}></div>
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <span className="text-gray-600">Maximum Wait Time</span>
-          <span className="text-2xl font-bold">{results.maxWaitTime}</span>
-        </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full bg-blue-500" style={{ width: '85%' }}></div>
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <span className="text-gray-600">Maximum Queue Time</span>
-          <span className="text-2xl font-bold">{results.maxQueueTime}</span>
-        </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full bg-blue-500" style={{ width: '65%' }}></div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const ScoreCard = ({ score, label }) => (
+const ResultBox = ({ value, label }) => (
   <div className="text-center p-4 bg-white rounded-lg shadow-sm space-y-2">
-    <div className="text-3xl font-bold">{score}%</div>
+    <div className="text-3xl font-bold">{value}</div>
     <div className="text-sm text-gray-500">{label}</div>
-  </div>
-);
-
-const JunctionPreview = () => (
-  <div className="aspect-square w-full max-w-md mx-auto bg-gray-200 rounded-lg flex items-center justify-center">
-    <span className="text-gray-500 text-sm">Junction Preview</span>
   </div>
 );
 
@@ -83,6 +40,12 @@ const DirectionSelector = ({ currentDirection, onDirectionChange }) => {
     </div>
   );
 };
+
+const JunctionPreview = () => (
+  <div className="aspect-square w-full max-w-md mx-auto bg-gray-200 rounded-lg flex items-center justify-center">
+    <span className="text-gray-500 text-sm">Junction Preview</span>
+  </div>
+);
 
 const SimulationPage = () => {
   const [currentDirection, setCurrentDirection] = useState('Northbound');
@@ -121,7 +84,7 @@ const SimulationPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-[1920px] mx-auto px-8 py-6">
         <div className="text-xl font-medium mb-6">
           {simulationData.configName} - {simulationData.junctionName}
         </div>
@@ -133,25 +96,37 @@ const SimulationPage = () => {
               <JunctionPreview />
             </div>
             <div className="grid grid-cols-3 gap-4">
-              <ScoreCard score={simulationData.scores.efficiency} label="Efficiency Score" />
-              <ScoreCard score={simulationData.scores.sustainability} label="Sustainability Score" />
-              <ScoreCard score={simulationData.scores.average} label="Average Score" />
+              <ResultBox value={`${simulationData.scores.efficiency}%`} label="Efficiency Score" />
+              <ResultBox value={`${simulationData.scores.sustainability}%`} label="Sustainability Score" />
+              <ResultBox value={`${simulationData.scores.average}%`} label="Average Score" />
             </div>
           </div>
 
           {/* Right section - Results */}
           <div>
-            <ResultsDisplay 
-              direction={currentDirection} 
-              results={simulationData.results[currentDirection]} 
-            />
-            <DirectionSelector 
-              currentDirection={currentDirection}
-              onDirectionChange={setCurrentDirection}
-            />
+            <div className="bg-white rounded-lg shadow-sm p-6 h-full flex flex-col">
+              <h2 className="text-xl font-medium text-gray-900 mb-4">Results</h2>
+              <div className="flex-grow flex flex-col justify-between mb-4">
+                <ResultBox 
+                  value={simulationData.results[currentDirection].avgWaitTime} 
+                  label="Average Wait Time" 
+                />
+                <ResultBox 
+                  value={simulationData.results[currentDirection].maxWaitTime} 
+                  label="Maximum Wait Time" 
+                />
+                <ResultBox 
+                  value={simulationData.results[currentDirection].maxQueueTime} 
+                  label="Maximum Queue Time" 
+                />
+              </div>
+              <DirectionSelector 
+                currentDirection={currentDirection}
+                onDirectionChange={setCurrentDirection}
+              />
+            </div>
           </div>
         </div>
-
       </main>
     </div>
   );
