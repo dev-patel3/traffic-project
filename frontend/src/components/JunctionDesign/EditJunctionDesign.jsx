@@ -141,6 +141,7 @@ const DirectionForm = ({ direction, values, onChange }) => {
   };
 
 const EditJunctionDesign = ({ junctionId, onNavigate }) => {
+  console.log("EditJunctionDesign received junctionId:", junctionId); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);

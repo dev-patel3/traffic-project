@@ -18,6 +18,7 @@ function App() {
   const [previousPage, setPreviousPage] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [editConfigId, setEditConfigId] = useState(null);
+  const [navigationParams, setNavigationParams] = useState({});
 
   useEffect(() => {
     axios.get('http://localhost:5000/api/test')
@@ -25,13 +26,10 @@ function App() {
   }, []);
 
   const navigateTo = (page, params = {}) => {
-    console.log('Navigating to:', page, 'with params:', params); // Debug log
+    console.log('Navigating to:', page, 'with params:', params);
     setPreviousPage(currentPage);
     setCurrentPage(page);
-    if (params.junctionId) {
-      console.log('Setting junction ID:', params.junctionId); // Debug log
-      setEditConfigId(params.junctionId);
-    }
+    setNavigationParams(params);  // Store the params
   };
 
   const handleBack = () => {
@@ -130,13 +128,17 @@ function App() {
         {currentPage === 'home' && <HomePage onNavigate={navigateTo} />}
         {currentPage === 'saved' && <SavedConfigurations onNavigate={navigateTo} />}
         {currentPage === 'traffic' && <TrafficConfigPage onNavigate={navigateTo} previousPage={previousPage}/>}
-        {currentPage === 'editTraffic' && <EditTrafficConfig configId={editConfigId} onNavigate={navigateTo} />}
-        {currentPage === 'junctionDesign' && <JunctionDesign onNavigate={navigateTo} previousPage={previousPage}/>}
+        {currentPage === 'editTraffic' && (
+  <EditTrafficConfig 
+    configId={navigationParams.configId}
+    onNavigate={navigateTo} 
+  />
+)}        {currentPage === 'junctionDesign' && <JunctionDesign onNavigate={navigateTo} previousPage={previousPage}/>}
         {currentPage === 'simulation' && <SimulationPage onNavigate={navigateTo} />}
         {currentPage === 'junctionSaved' && <SavedJunctions onNavigate={navigateTo} />}
         {currentPage === 'editJunction' && (
   <EditJunctionDesign 
-    junctionId={editConfigId} 
+    junctionId={navigationParams.junctionId}  // Make sure this matches
     onNavigate={navigateTo} 
   />
 )}

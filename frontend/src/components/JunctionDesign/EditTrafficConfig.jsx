@@ -48,6 +48,7 @@ const DirectionInputs = ({ direction, values, onChange }) => {
 };
 
 const EditTrafficConfig = ({ configId, onNavigate }) => {
+  console.log("EditTrafficConfig rendered with configId:", configId);
   const [configName, setConfigName] = useState('');
   const [directionData, setDirectionData] = useState({
     northbound: {},
@@ -62,25 +63,53 @@ const EditTrafficConfig = ({ configId, onNavigate }) => {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
+        console.log("Attempting to fetch config with ID:", configId); // Debug log
         setLoading(true);
-        const response = await fetch(`http://localhost:5000/api/traffic-flows/${configId}`);
-        if (!response.ok) throw new Error('Failed to fetch configuration');
         
-        const data = await response.json();
-        setConfigName(data.name);
+        // First fetch to get all configs
+        const response = await fetch('http://localhost:5000/api/traffic-flows');
+        if (!response.ok) throw new Error('Failed to fetch configurations');
+        
+        const allConfigs = await response.json();
+        console.log("All configs:", allConfigs); // Debug log
+        
+        // Find the specific config we want
+        const config = allConfigs.find(config => config.id === configId);
+        if (!config) throw new Error('Configuration not found');
+        
+        console.log("Found config:", config); // Debug log
+        
+        setConfigName(config.name);
         setDirectionData({
-          northbound: data.flows.northbound.exits,
-          southbound: data.flows.southbound.exits,
-          eastbound: data.flows.eastbound.exits,
-          westbound: data.flows.westbound.exits
+          northbound: {
+            exit_north: Math.round(config.northVPH * 0.6),
+            exit_east: Math.round(config.northVPH * 0.2),
+            exit_west: Math.round(config.northVPH * 0.2)
+          },
+          southbound: {
+            exit_south: Math.round(config.southVPH * 0.6),
+            exit_east: Math.round(config.southVPH * 0.2),
+            exit_west: Math.round(config.southVPH * 0.2)
+          },
+          eastbound: {
+            exit_east: Math.round(config.eastVPH * 0.6),
+            exit_north: Math.round(config.eastVPH * 0.2),
+            exit_south: Math.round(config.eastVPH * 0.2)
+          },
+          westbound: {
+            exit_west: Math.round(config.westVPH * 0.6),
+            exit_north: Math.round(config.westVPH * 0.2),
+            exit_south: Math.round(config.westVPH * 0.2)
+          }
         });
       } catch (err) {
+        console.error("Error details:", err); // Debug log
         setError(`Error loading configuration: ${err.message}`);
       } finally {
         setLoading(false);
       }
     };
-
+  
     if (configId) {
       fetchConfig();
     }
@@ -117,9 +146,10 @@ const EditTrafficConfig = ({ configId, onNavigate }) => {
       setError(errors.join(', '));
       return;
     }
-
+  
     try {
       setSaving(true);
+  
       const response = await fetch(`http://localhost:5000/api/traffic-flows/${configId}`, {
         method: 'PUT',
         headers: {
@@ -128,22 +158,30 @@ const EditTrafficConfig = ({ configId, onNavigate }) => {
         body: JSON.stringify({
           name: configName,
           flows: {
-            northbound: { exits: directionData.northbound },
-            southbound: { exits: directionData.southbound },
-            eastbound: { exits: directionData.eastbound },
-            westbound: { exits: directionData.westbound }
+            northbound: {
+              exits: directionData.northbound
+            },
+            southbound: {
+              exits: directionData.southbound
+            },
+            eastbound: {
+              exits: directionData.eastbound
+            },
+            westbound: {
+              exits: directionData.westbound
+            }
           }
         })
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to update configuration');
       }
-
+  
       const result = await response.json();
       if (result.success) {
-        onNavigate('saved');  // Navigate back to saved configurations
+        onNavigate('saved');
       } else {
         throw new Error(result.error || 'Failed to update configuration');
       }
