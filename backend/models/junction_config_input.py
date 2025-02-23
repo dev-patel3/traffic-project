@@ -1,24 +1,102 @@
 from junction_config import JunctionConfiguration 
 
 class JunctionConfigurationInput:
-    def __init__(self, name: str, junctionConfig: JunctionConfiguration):
+    def __init__(self, name: str, junctionConfig: JunctionConfiguration, 
+    existing_junction_config_names: set, existing_traffic_config_names: set):
         self.name = name  
         self.junctionConfig = junctionConfig  
-        self.errors = "" 
+        self.errors: list[str] = []
+        self.existing_junction_config_names = existing_junction_config_names
+        self.existing_traffic_config_names = existing_traffic_config_names
 
-    def validateConfiguration(self, data, existing_junction_config_names: set, existing_traffic_config_names: set) -> dict:
+    def validating_name(self):
+        """Validate junction name is a non-empty string and is unique (doesn't already exist)"""
+        if not self.name or not isinstance(self.name, str):
+            self.errors.append("Junction configuration name must be a non-empty string.")
+        if self.name in self.existing_junction_config_names:
+            self.errors.append(f"Junction configuration name '{self.name}' already exists.")
+
+    def validating_lanes(self):
+        """Validate that the number of lanes is between 1 and 5 for all directions."""
+        for direction in ['northbound', 'southbound', 'eastbound', 'westbound']:
+            lanes = self.junctionConfig.lanes.get(direction, 0)
+            if not isinstance(lanes, int) or not (1 <= lanes <= 5):
+                self.errors.append(f"Number of lanes for {direction} must be an integer between 1 and 5.")
+
+    def validating_bus_cycle_lane(self):
+        """Validate bus/cycle lane to have a valid flow rate that is an integer between 1 and 2000 """
+        for direction in ['northbound', 'southbound', 'eastbound', 'westbound']:
+            if self.junctionConfig.has_bus_cycle_lane:
+                flow_rate = self.junctionConfig.bus_cycle_incoming_flow.get(direction, None)
+                if flow_rate is None or not isinstance(flow_rate, int) or not (0 <= flow_rate <= 2000):
+                    self.errors.append(
+                    f"Flow rate for the bus/cycle lane in {direction} must be a "
+                    f"non-negative whole number in vph, between 0 and 2000."
+                    )
+
+    def validating_crossing_durations(self):
+        """Validate crossing durations for each direction, which must be between 10 and 60 seconds"""
+        for direction in ['northbound', 'southbound', 'eastbound', 'westbound']:
+            if self.junctionConfig.has_pedestrian_crossing:
+                duration = self.junctionConfig.pedestrian_crossing_duration
+                if not isinstance(duration, int) or not (10 <= duration <= 60):
+                    self.errors.append(f"Crossing duration for {direction} must be an integer and between 10 and 60 seconds.")
+    
+    def validating_priority_levels(self):
+        """Validating that priority levels include exactly 0, 1, 2, 3, and 4 with no duplicates."""
+    
+        priority_levels = []
+        required_priorities = {0, 1, 2, 3, 4}  #expected values
+        
+        for direction in ['northbound', 'southbound', 'eastbound', 'westbound', 'pedestrian']:
+            priority = self.junctionConfig.traffic_light_priority.get(direction, 0)
+
+            # Ensuring priority is an integer within the valid range
+            if not isinstance(priority, int) or not (0 <= priority <= 4):
+                self.errors.append(f"Priority for {direction} must be an integer between 0 and 4.")
+            
+            priority_levels.append(priority)
+
+        # Converting it to a set to check there's one of each
+        if sorted(priority_levels) != list(required_priorities):
+            self.errors.append("Traffic priorities must contain exactly one of each: 0, 1, 2, 3, and 4.")
+
+    def validating_maximum_junctions(self):
+        """Validate that a maximum of 10 junctions per traffic flow is not exceeded."""
+        count = sum(
+         1 for junction in self.existing_junction_config_names.values()
+         if junction.get('traffic_flow_name') == self.junctionConfig.traffic_flow_name
+        )
+
+        if count >= 10:
+            self.errors.append(
+                f"Traffic flow configuration '{self.junctionConfig.traffic_flow_name}' has already reached the maximum of 10 junction configurations."
+            )
+
+    def validate(self) -> bool:
+        """Runs all validation methods and returns True if valid."""
+        self.validating_name()
+        self.validating_lanes()
+        self.validating_bus_cycle_lane()
+        self.validating_crossing_durations()
+        self.validating_priority_levels()
+        self.validating_maximum_junctions()
+
+        return len(self.errors) == 0
+
+    def saveConfiguration(self) -> bool:
         """
-        This is how input data is validated for junction configuration inputs.
+        Saves the junction configuration after validation.
         """
-        config = data.get('configuration', {})
-        junction_config_name = data.get('junction_config_name', None)
+        if not self.validate():
+            print("Cannot save: Validation failed")
+            return False
 
-        errors = []
+        return saving_junction_configuration(self.junctionConfig)
 
-        # Now implement the valdiation rules for each input
 
-        # Junction configuration rules validation
 
+        '''
         # 1) Validate that none of the necessary input boxes are empty (and for the conditional boxes as well)
         if not junction_config_name:
             errors.append("Junction configuration name must be non-empty.")
@@ -44,41 +122,9 @@ class JunctionConfigurationInput:
             # priority not empty (defaulted to 0 if not specified)
             priority = direction_config.get('priority', 0)
 
-        # 2) Validate number of lanes in each direction between 1 and 5
-        for direction in ['north', 'south', 'east', 'west']:
-            lanes = config.get(direction, {}).get('lanes', 0)
-            if not isinstance(lanes, int) or not (1 <= lanes <= 5):
-                errors.append(f"Number of lanes for {direction} must be an integer between 1 and 5.")
-
         # 3) Validate if left-turn enabled, lane must change 1 of the existing lanes which must be chosen
 
-        # 4) Validate bus/cycle lane to have a valid flow rate that is an integer between 1 and 2000 (ignore matrix for now)
-        for direction in ['north', 'south', 'east', 'west']:
-            direction_config = config.get(direction, {})
-            has_bus_cycle_lane = direction_config.get('bus_cycle_lane', False)
-            flow_rate = direction_config.get('bus_cycle_flow_rate', None)
-            if has_bus_cycle_lane:
-                if not isinstance(flow_rate, int) or not (0 <= flow_rate <= 2000):
-                    errors.append(f"Flow rate for the bus/cycle lane in {direction} must be a non-negative whole number in vph, between 0 and 2000.")
-
         # 5) Validate only 1 bus/cycle lane per direction, CAN be ignored because slider now - maybe specify which one
-
-        # 6) Validate crossing durations for each direction, which must be between 10 and 60 seconds
-        priority_levels = []
-        for direction in ['north', 'south', 'east', 'west']:
-            if not config.get(direction, {}).get('has_crossing', False):
-                continue
-            duration = config.get(direction, {}).get('crossing_duration', 0)
-            if not isinstance(duration, int) or not (10 <= duration <= 60):
-                errors.append(f"Crossing duration for {direction} must be an integer and between 10 and 60 seconds.")
-
-
-        # 7) Validate priority levels range from 0 (no priority) to 4 (highest priority)
-        for direction in ['north', 'south', 'east', 'west']:
-            priority = config.get(direction, {}).get('priority', 0)     # default to 0 priority if not specified
-            if not isinstance(priority, int) or not (0 <= priority <= 4):
-                errors.append(f"Priority for {direction} must be an integer between 0 and 4.")
-            priority_levels.append(priority)
 
         # 8) Validate that the priority levels are unique (except for 0)
         non_zero_priorities = [p for p in priority_levels if p > 0]     # list stores duplicates, set does not
@@ -88,23 +134,20 @@ class JunctionConfigurationInput:
         # 9) Validate number of outgoing lanes matches maximum incoming lanes, for all directions
 
         # 10) Validate that each incoming lane routees to a dedicated outgoing lane (no merging permitted)
-            
-        # 11) Validate that for the traffic flow configuration of the junction, the maximum number of 10 has not been reached already
-        traffic_flow_name = data.get('traffic_flow_name', None)
-        # for that traffic flow, check in the set of all existing junction name, how many junctions exist with the same traffic flow name (if >= 10, append an error)
-        count = sum(1 for junction_name in existing_junction_config_names if existing_junction_config_names[junction_name].get('traffic_flow_name', None) == traffic_flow_name)
-        if (count >= 10):
-            errors.append(f"Traffic flow configuration {traffic_flow_name} has already got the maximum number of junction onfigurations stored (10).")
-
-        # 12) Validate junction name is a non-empty string and is unique (doesn't already exist)
-        if not junction_config_name or not isinstance(junction_config_name, str):
-            errors.append("Junction configuration name must be a non-empty string.")
-        if junction_config_name in existing_junction_config_names:
-            errors.append(f"Junction configuration name '{junction_config_name}' already exists.")
+        
 
 
-        return {'success': len(errors) == 0, 'errors': errors}
+        
+        def validateConfiguration(self, data, existing_junction_config_names: set, existing_traffic_config_names: set) -> dict:
+        """
+        This is how input data is validated for junction configuration inputs.
+        """
+        config = data.get('configuration', {})
+        junction_config_name = data.get('junction_config_name', None)
 
-    def saveConfiguration(self) -> None:
-        pass
+        errors = []
 
+        # Now implement the valdiation rules for each input
+
+        # Junction configuration rules validation
+        '''

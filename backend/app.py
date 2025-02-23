@@ -1,34 +1,56 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from backend.storage import (
+loading_traffic_flows,
+saving_traffic_flows,
+getting_traffic_flow,
+deleting_traffic_flow,
+saving_traffic_flow,
+loading_junctions_configurations,
+saving_junction_configurations,
+getting_junction_configuration,
+deleting_junction_configuration,
+saving_junction_configuration)
 import json
 import os
 
+
+from backend.models.traffic_flow import TrafficFlow
+from backend.models.junction_config import JunctionConfiguration
+from backend.models.traffic_flow_input import TrafficFlowInput
+from backend.models.junction_config_input import JunctionConfigurationInput
+
 app = Flask(__name__)
-CORS(app, resources={
-    r"/api/*": {
-        "origins": ["http://localhost:3000"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
-    }
-})
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000"]}})
+# CORS(app, resources={
+#     r"/api/*": {
+#         "origins": ["http://localhost:3000"],
+#         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+#         "allow_headers": ["Content-Type", "Authorization"]
+#     }
+# })
 
 # Make sure the database directory exists
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE_DIR = os.path.join(BASE_DIR, 'database')
-DATABASE_FILE = os.path.join(DATABASE_DIR, 'storing_configs.json')
+#BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+#DATABASE_DIR = os.path.join(BASE_DIR, 'database')
+#DATABASE_FILE = os.path.join(DATABASE_DIR, 'storing_configs.json')
 
-def init_database():
-    """Initialize the database file if it doesn't exist"""
-    if not os.path.exists(DATABASE_DIR):
-        os.makedirs(DATABASE_DIR)
+#def init_database():
+    #Initialize the database file if it doesn't exist
+    #if not os.path.exists(DATABASE_DIR):
+        #os.makedirs(DATABASE_DIR)
     
-    if not os.path.exists(DATABASE_FILE):
-        initial_data = {
-            "traffic_flow_configurations": {},
-            "junction_configurations": {}
-        }
-        with open(DATABASE_FILE, 'w') as f:
-            json.dump(initial_data, f, indent=3)
+    #if not os.path.exists(DATABASE_FILE):
+        #initial_data = {
+            #"traffic_flow_configurations": {},
+            #"junction_configurations": {}
+        #}
+        #with open(DATABASE_FILE, 'w') as f:
+            #json.dump(initial_data, f, indent=3)
+
+
+'''
+-
 
 def load_database():
     """Load the database file"""
@@ -47,11 +69,14 @@ def save_database(data):
     with open(DATABASE_FILE, 'w') as f:
         json.dump(data, f, indent=3)
 
+'''
+
+'''
 @app.route('/api/traffic-flows', methods=['GET'])
 def get_traffic_flows():
     """Gets all traffic flow configurations."""
     try:
-        data = load_database()
+        data
         
         # Transform the data for frontend
         traffic_flows = []
@@ -75,6 +100,41 @@ def get_traffic_flows():
         print(f"Error in get_traffic_flows: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+'''
+
+@app.route('/api/traffic-flows', methods=['GET'])
+def get_traffic_flows():
+    """Gets all traffic flow configurations."""
+    try:
+        data = loading_traffic_flows()
+        traffic_configurations = data.get("traffic_flow_configurations", {})
+        junction_configurations = data.get("junction_configurations", {})
+        
+
+        # Transform the data for frontend
+        traffic_flows = [
+            {
+                "id": name,
+                "name": name,
+                "northVPH": flow.get("northbound", {}).get("incoming_flow", 0), 
+                "southVPH": flow.get("southbound", {}).get("incoming_flow", 0),
+                "eastVPH": flow.get("eastbound", {}).get("incoming_flow", 0),
+                "westVPH": flow.get("westbound", {}).get("incoming_flow", 0),
+                "junctionCount": sum(
+                    1 for junction in junction_configurations.values()
+                    if junction.get("traffic_flow_config") == name
+                )
+            }
+            for name, flow in traffic_configurations.items()
+        ]
+            
+        return jsonify(traffic_flows)
+        
+    except Exception as e:
+        print(f"Error in get_traffic_flows: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+'''
 @app.route('/api/traffic-flows/<flow_id>', methods=['GET'])
 def get_traffic_flow(flow_id):
     """Gets a specific traffic flow configuration."""
@@ -111,7 +171,48 @@ def get_traffic_flow(flow_id):
     except Exception as e:
         print(f"Error in get_traffic_flow: {str(e)}")
         return jsonify({"error": str(e)}), 500
+'''
 
+@app.route('/api/traffic-flows/<flow_id>', methods=['GET'])
+def get_traffic_flow(flow_id):
+    """Gets a specific traffic flow configuration."""
+    try:
+        #getting traffic flow config from storage
+        flow_config = getting_traffic_flow(flow_id)
+    
+        if not flow_config:
+            return jsonify({"error": "Traffic flow not found"}), 404
+            
+        # Transform the data for frontend
+        transformed_flow = {
+            "id": flow_id,
+            "name": flow_id,
+            "flows": {
+                "northbound": {
+                    "incoming": flow_config.get("northbound", {}).get("incoming_flow", 0), 
+                    "exits": flow_config.get("northbound", {}).get("exits", {})
+                },
+                "southbound": {
+                    "incoming": flow_config.get("southbound", {}).get("incoming_flow", 0),
+                    "exits": flow_config.get("southbound", {}).get("exits", {})
+                },
+                "eastbound": {
+                    "incoming": flow_config.get("eastbound", {}).get("incoming_flow", 0),
+                    "exits": flow_config.get("eastbound", {}).get("exits", {})
+                },
+                "westbound": {
+                    "incoming": flow_config.get("westbound", {}).get("incoming_flow", 0),
+                    "exits": flow_config.get("westbound", {}).get("exits", {})
+                }
+            }
+        }
+        return jsonify(transformed_flow)
+        
+    except Exception as e:
+        print(f"Error in get_traffic_flow: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+'''
 @app.route('/api/traffic-flows', methods=['POST'])
 def create_traffic_flow():
     """Creates a new traffic flow configuration."""
@@ -146,7 +247,60 @@ def create_traffic_flow():
             "success": False,
             "error": str(e)
         }), 500
+'''
 
+@app.route('/api/traffic-flows', methods=['POST'])
+def create_traffic_flow():
+    """Creates a new traffic flow configuration."""
+    try:
+        new_config = request.get_json()
+        #loading the existing traffic
+        data = loading_traffic_flows()
+        existing_names = set(data["traffic_flow_configurations"].keys())
+
+        # Creates and validates TrafficFlowInput
+        traffic_flow_input = TrafficFlowInput(
+            name=new_config["name"],
+            flows=new_config["flows"],
+            existing_traffic_config_names=existing_names
+        )
+
+        if not traffic_flow_input.validate():
+            return jsonify({
+                "success": False,
+                "error": traffic_flow_input.errors
+            }), 400
+        
+
+        # Constructing a TrafficFlow object, after validation succeeds
+        traffic_flow = TrafficFlow(
+            name=new_config["name"],
+            incoming_flows={direction: new_config["flows"].get(direction, {}).get("incoming_flow", 0)
+                            for direction in ['northbound', 'southbound', 'eastbound', 'westbound']},
+            exit_flows={direction: new_config["flows"].get(direction, {}).get("exits", {})
+                        for direction in ['northbound', 'southbound', 'eastbound', 'westbound']}
+        )
+        
+        # Saving using this storage function
+        if not saving_traffic_flow(traffic_flow):
+            return jsonify({
+                "success": False,
+                "error": "Traffic flow configuration already exists or could not be saved"
+            }), 400
+        
+        return jsonify({
+            "success": True,
+            "message": "Traffic flow created successfully"
+        })
+        
+    except Exception as e:
+        print(f"Error in create_traffic_flow: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+'''
 @app.route('/api/traffic-flows/<flow_id>', methods=['PUT'])
 def update_traffic_flow(flow_id):
     """Updates an existing traffic flow configuration."""
@@ -203,7 +357,98 @@ def update_traffic_flow(flow_id):
             "success": False,
             "error": str(e)
         }), 500
+'''
 
+@app.route('/api/traffic-flows/<flow_id>', methods=['PUT'])
+def update_traffic_flow(flow_id):
+    """Updates an existing traffic flow configuration."""
+    try:
+        
+        existing_flow = getting_traffic_flow(flow_id)
+        
+        # Checking if flow exists
+        if not existing_flow:
+            return jsonify({
+                "success": False,
+                "error": "Traffic flow not found"
+            }), 404
+            
+        update_config = request.get_json()
+        new_name = update_config.get("name", flow_id) #keeps old name if no new name is given
+
+        #loading all the traffic flows
+        data = loading_traffic_flows()
+
+        # Ensure new name doesn't already exist, unless it is the same as the old one
+        if new_name in data["traffic_flow_configurations"] and new_name != flow_id:
+            return jsonify({
+                "success": False,
+                "error": f"Traffic flow configuration '{new_name}' already exists."
+            }), 400
+        
+        
+        # Creating a validation object to check the new configuration
+        traffic_flow_input = TrafficFlowInput(
+            name=new_name if new_name else flow_id,
+            flows=update_config["flows"],
+            existing_traffic_config_names=set(data["traffic_flow_configurations"].keys()) - {flow_id}
+        )
+
+        if not traffic_flow_input.validate():
+            return jsonify({
+                "success": False,
+                "errors": traffic_flow_input.errors
+            }), 400
+
+
+        #updated TrafficFlow object
+        traffic_flow = TrafficFlow(
+            name=new_name,
+            flow_rates={
+                direction: update_config["flows"].get(direction, {}).get("incoming", 0)
+                for direction in ['northbound', 'southbound', 'eastbound', 'westbound']
+            },
+            exit_distributions={
+                direction: update_config["flows"].get(direction, {}).get("exits", {})
+                for direction in ['northbound', 'southbound', 'eastbound', 'westbound']
+            }
+        )
+
+        # If name is being changed, we need to create a new entry and delete the old one
+        if new_name != flow_id:
+            # Updating any junction configurations that reference this flow
+            for junction in data.get("junction_configurations", {}).values():
+                if junction.get("traffic_flow_config") == flow_id:
+                    junction["traffic_flow_config"] = new_name
+
+            # Deleting the old configuration
+            if not deleting_traffic_flow(flow_id):
+                return jsonify({
+                    "success": False,
+                    "error": "Failed to delete the old traffic flow configuration"
+                }), 500
+                
+        # Saving the updated traffic flow
+        if not saving_traffic_flow(traffic_flow):
+            return jsonify({
+                "success": False,
+                "error": "Failed to save the updated traffic flow configuration"
+            }), 500
+        
+        return jsonify({
+            "success": True,
+            "message": "Traffic flow updated successfully",
+            "newId": new_name if new_name else flow_id
+        })
+        
+    except Exception as e:
+        print(f"Error in update_traffic_flow: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+'''
 @app.route('/api/traffic-flows/<flow_id>', methods=['DELETE'])
 def delete_traffic_flow(flow_id):
     """Deletes a traffic flow and its associated junctions."""
@@ -228,7 +473,44 @@ def delete_traffic_flow(flow_id):
     except Exception as e:
         print(f"Error in delete_traffic_flow: {str(e)}")
         return jsonify({"error": str(e)}), 500
-    
+'''
+@app.route('/api/traffic-flows/<flow_id>', methods=['DELETE'])
+def delete_traffic_flow(flow_id):
+    """Deletes a traffic flow and its associated junctions."""
+    try:
+        #checking if the traffic flow exists
+        existing_flow = getting_traffic_flow(flow_id)
+
+        if not existing_flow:
+            return jsonify({"success": False, "error": "Traffic flow not found"}), 404
+        
+        data = loading_traffic_flows()
+
+        #Removing all junctions associated with the traffic flow
+        updated_junctions = {
+            name: junction
+            for name, junction in data.get("junction_configurations", {}).items()
+            if junction.get("traffic_flow_config") != flow_id
+        }
+
+        # Updating the stored junction configurations
+        data["junction_configurations"] = updated_junctions
+
+        # Delete the traffic flow using the storage function
+        if not deleting_traffic_flow(flow_id):
+            return jsonify({"success": False, "error": "Failed to delete traffic flow"}), 500
+        
+        return jsonify({
+            "success": True,
+            "message": "Traffic flow and associated junctions deleted successfully"
+        })
+
+        
+    except Exception as e:
+        print(f"Error in delete_traffic_flow: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+'''
 @app.route('/api/traffic-flows/<flow_id>/junctions', methods=['GET'])
 def get_junction_configurations(flow_id):
     """Gets junction configurations for a specific traffic flow."""
@@ -276,7 +558,33 @@ def get_junction_configurations(flow_id):
     except Exception as e:
         print(f"Error in get_junction_configurations: {str(e)}")
         return jsonify({"error": str(e)}), 500
+'''
 
+@app.route('/api/junctions/<junction_id>', methods=['DELETE'])
+def delete_junction(junction_id):
+    """Deletes a junction configuration."""
+    try:
+        # Loading existing junctions
+        existing_junctions = loading_junctions_configurations()
+
+        # Checking if junction exists
+        if junction_id not in existing_junctions:
+            return jsonify({"success": False, "error": "Junction not found"}), 404
+
+        # Deleting the junction
+        if not deleting_junction_configuration(junction_id):
+            return jsonify({"success": False, "error": "Failed to delete junction configuration"}), 500
+
+        return jsonify({
+            "success": True,
+            "message": "Junction deleted successfully"
+        })
+
+    except Exception as e:
+        print(f"Error in delete_junction: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+'''
 @app.route('/api/traffic-flows/<flow_id>/junctions', methods=['POST'])
 def create_junction_configuration(flow_id):
     """Creates a new junction configuration for a traffic flow."""
@@ -629,6 +937,8 @@ def get_junctions_for_flow(flow_id):
         print(f"Error in get_junctions_for_flow: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+'''
 if __name__ == '__main__':
-    init_database()  # Initialize database on startup
+    #init_database()  
     app.run(debug=True)
+

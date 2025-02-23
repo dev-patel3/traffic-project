@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Optional
 from backend.models.traffic_flow import TrafficFlow
 from backend.models.junction_config import JunctionConfiguration
 
@@ -25,7 +26,7 @@ def saving_traffic_flows(data: dict) -> bool:
         return False
 
 #getting a traffic flow configuration by name, returns None if it is not found
-def getting_traffic_flow(name: str) -> dict | None:
+def getting_traffic_flow(name: str) -> Optional[dict]:
 
         traffic_config_data = loading_traffic_flows() #loading the traffic flow data
         return traffic_config_data["traffic_flow_configurations"].get(name, None)
@@ -109,7 +110,7 @@ def saving_junction_configurations(data: list) -> bool:
         return False
     
 # getting a JUNCTION configuration by name, returns None if it is not found
-def getting_junction_configuration(name: str) -> dict | None:
+def getting_junction_configuration(name: str) -> Optional[dict]:
 
         data = loading_junctions_configurations() # loading the junction configuration data
         #for config in data:
