@@ -1,30 +1,65 @@
-# Traffic Junction Modelling Software
-This is an installation guide to help you set up and run the Traffic Junction Simulation software on your computer.
+Traffic Junction Modelling Software
 
-Before installing the software, make sure your computer meets the following requirements:
-Operating Sytem: Windows 10 or later, macOS, or Linux
-Python version: 3.10 or later, this can be installed from 'python.org'
-Node.js version: 18.x or later, this can be installed from 'https://nodejs.org/en'
-PostgreSQL version: 14 or later, this can be installed from 'https://www.postgresql.org/download/'. To ensure PostgreSQL is running, run 'sudo service postgresql start' in the terminal
+Welcome to the Traffic Junction Simulation software! This guide will help you set up and run the software on your computer.
 
-Downloading and setting up the project:
-Download the project files and navigate to the project folder in the terminal.
-run the following commands in order
-'cd backend'
-'pip install -r requirements.txt'
-'pip install -U flask-cors'
-'python app.py'
+------------------------------------------------------------
+PREREQUISITES
+------------------------------------------------------------
+Before installing the software, ensure your computer meets the following requirements:
 
-in a separate terminal, navigate to the project folder and run the following commands:
-'cd frontend'
-'npm install'
-'npm install react-scripts'
-'npm install lucide-react'
-'npm install @radix-ui/react-toast'
-'npm install @radix-ui/react-switch'
-'npm install @radix-ui/react-tooltip'
-'npm start'
+Operating System:
+  - Windows 10 or later, macOS, or Linux
 
-Your program should now be successfully running!
+Python:
+  - Version 3.10 or later
+  - Download from: https://python.org
 
-Need help? For additional assistance, users can contact the support team at example@email.com
+Node.js:
+  - Version 18.x or later
+  - Download from: https://nodejs.org/en
+
+PostgreSQL:
+  - Version 14 or later
+  - Download from: https://www.postgresql.org/download/
+  - To start PostgreSQL, run the following command in your terminal:
+      sudo service postgresql start
+
+------------------------------------------------------------
+DOWNLOADING AND SETTING UP THE PROJECT
+------------------------------------------------------------
+1. Download the project files.
+2. Navigate to the project folder in your terminal.
+
+------------------------------------------------------------
+BACKEND SETUP
+------------------------------------------------------------
+Run the following commands in order:
+
+  cd backend
+  pip install -r requirements.txt
+  pip install -U flask-cors
+  python app.py
+
+------------------------------------------------------------
+FRONTEND SETUP
+------------------------------------------------------------
+In a separate terminal, navigate to the project folder and run:
+
+  cd frontend
+  npm install
+  npm install react-scripts
+  npm install lucide-react
+  npm install @radix-ui/react-toast
+  npm install @radix-ui/react-switch
+  npm install @radix-ui/react-tooltip
+  npm start
+
+------------------------------------------------------------
+RUNNING THE PROGRAM
+------------------------------------------------------------
+After completing the setup steps, your program should now be successfully running!
+
+------------------------------------------------------------
+NEED HELP?
+------------------------------------------------------------
+For additional assistance, please contact our support team at example@email.com
