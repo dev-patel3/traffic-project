@@ -1,41 +1,30 @@
-# Traffic Project
+# Traffic Junction Modelling Software
+This is an installation guide to help you set up and run the Traffic Junction Simulation software on your computer.
 
-__ Project Setup: __ 
+Before installing the software, make sure your computer meets the following requirements:
+Operating Sytem: Windows 10 or later, macOS, or Linux
+Python version: 3.10 or later, this can be installed from 'python.org'
+Node.js version: 18.x or later, this can be installed from 'https://nodejs.org/en'
+PostgreSQL version: 14 or later, this can be installed from 'https://www.postgresql.org/download/'. To ensure PostgreSQL is running, run 'sudo service postgresql start' in the terminal
 
-Ensure you have Python and npm installed on your system.
+Downloading and setting up the project:
+Download the project files and navigate to the project folder in the terminal.
+run the following commands in order
+'cd backend'
+'pip install -r requirements.txt'
+'pip install -U flask-cors'
+'python app.py'
 
-Make sure your virtual environment (if using) is activated before running the backend installation commands.
+in a separate terminal, navigate to the project folder and run the following commands:
+'cd frontend'
+'npm install'
+'npm install react-scripts'
+'npm install lucide-react'
+'npm install @radix-ui/react-toast'
+'npm install @radix-ui/react-switch'
+'npm install @radix-ui/react-tooltip'
+'npm start'
 
-The frontend runs on npm start and the backend is initiated with python app.py.
+Your program should now be successfully running!
 
-## Frontend Setup
-
-__ Navigate to the frontend folder: __
-
-cd frontend
-
-__ Install npm dependencies: __
-
-npm install
-
-__ Install required packages: __
-
-npm install lucide-react
-npm install @radix-ui/react-toast
-npm install @radix-ui/react-switch
-npm install @radix-ui/react-tooltip
-
-__ Start the frontend: __
-
-npm start
-
-## Backend Setup
-
-__ Install Flask and Flask-CORS: __
-
-pip install flask
-pip install -U flask-cors
-
-__ Run the backend: __
-
-python app.py
+Need help? For additional assistance, users can contact the support team at example@email.com
