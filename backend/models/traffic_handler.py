@@ -1,4 +1,3 @@
-from sqlalchemy.engine.base import Connection  
 from traffic_flow import TrafficFlow 
 
 class TrafficHandler:

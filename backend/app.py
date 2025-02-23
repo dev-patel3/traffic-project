@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+'''
 from backend.storage import (
 loading_traffic_flows,
 saving_traffic_flows,
@@ -11,46 +12,47 @@ saving_junction_configurations,
 getting_junction_configuration,
 deleting_junction_configuration,
 saving_junction_configuration)
+'''
 import json
 import os
 
-
+'''
 from backend.models.traffic_flow import TrafficFlow
 from backend.models.junction_config import JunctionConfiguration
 from backend.models.traffic_flow_input import TrafficFlowInput
 from backend.models.junction_config_input import JunctionConfigurationInput
+'''
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000"]}})
-# CORS(app, resources={
-#     r"/api/*": {
-#         "origins": ["http://localhost:3000"],
-#         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-#         "allow_headers": ["Content-Type", "Authorization"]
-#     }
-# })
+#CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000"]}}) 
+CORS(app, resources={
+     r"/api/*": {
+         "origins": ["http://localhost:3000"],
+         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         "allow_headers": ["Content-Type", "Authorization"]
+     }
+ })
 
 # Make sure the database directory exists
-#BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-#DATABASE_DIR = os.path.join(BASE_DIR, 'database')
-#DATABASE_FILE = os.path.join(DATABASE_DIR, 'storing_configs.json')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_DIR = os.path.join(BASE_DIR, 'database')
+DATABASE_FILE = os.path.join(DATABASE_DIR, 'storing_configs.json')
 
-#def init_database():
+def init_database():
     #Initialize the database file if it doesn't exist
-    #if not os.path.exists(DATABASE_DIR):
-        #os.makedirs(DATABASE_DIR)
+    if not os.path.exists(DATABASE_DIR):
+        os.makedirs(DATABASE_DIR)
     
-    #if not os.path.exists(DATABASE_FILE):
-        #initial_data = {
-            #"traffic_flow_configurations": {},
-            #"junction_configurations": {}
-        #}
-        #with open(DATABASE_FILE, 'w') as f:
-            #json.dump(initial_data, f, indent=3)
+    if not os.path.exists(DATABASE_FILE):
+        initial_data = {
+            "traffic_flow_configurations": {},
+            "junction_configurations": {}
+        }
+        with open(DATABASE_FILE, 'w') as f:
+            json.dump(initial_data, f, indent=3)
 
 
-'''
--
+
 
 def load_database():
     """Load the database file"""
@@ -69,9 +71,6 @@ def save_database(data):
     with open(DATABASE_FILE, 'w') as f:
         json.dump(data, f, indent=3)
 
-'''
-
-'''
 @app.route('/api/traffic-flows', methods=['GET'])
 def get_traffic_flows():
     """Gets all traffic flow configurations."""
@@ -101,7 +100,6 @@ def get_traffic_flows():
         return jsonify({"error": str(e)}), 500
 
 '''
-
 @app.route('/api/traffic-flows', methods=['GET'])
 def get_traffic_flows():
     """Gets all traffic flow configurations."""
@@ -135,6 +133,7 @@ def get_traffic_flows():
         return jsonify({"error": str(e)}), 500
 
 '''
+
 @app.route('/api/traffic-flows/<flow_id>', methods=['GET'])
 def get_traffic_flow(flow_id):
     """Gets a specific traffic flow configuration."""
@@ -211,8 +210,8 @@ def get_traffic_flow(flow_id):
     except Exception as e:
         print(f"Error in get_traffic_flow: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
 '''
+
 @app.route('/api/traffic-flows', methods=['POST'])
 def create_traffic_flow():
     """Creates a new traffic flow configuration."""
@@ -247,8 +246,8 @@ def create_traffic_flow():
             "success": False,
             "error": str(e)
         }), 500
-'''
 
+'''
 @app.route('/api/traffic-flows', methods=['POST'])
 def create_traffic_flow():
     """Creates a new traffic flow configuration."""
@@ -299,7 +298,6 @@ def create_traffic_flow():
             "success": False,
             "error": str(e)
         }), 500
-
 '''
 @app.route('/api/traffic-flows/<flow_id>', methods=['PUT'])
 def update_traffic_flow(flow_id):
@@ -357,8 +355,8 @@ def update_traffic_flow(flow_id):
             "success": False,
             "error": str(e)
         }), 500
+    
 '''
-
 @app.route('/api/traffic-flows/<flow_id>', methods=['PUT'])
 def update_traffic_flow(flow_id):
     """Updates an existing traffic flow configuration."""
@@ -509,8 +507,8 @@ def delete_traffic_flow(flow_id):
     except Exception as e:
         print(f"Error in delete_traffic_flow: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
-
 '''
+
 @app.route('/api/traffic-flows/<flow_id>/junctions', methods=['GET'])
 def get_junction_configurations(flow_id):
     """Gets junction configurations for a specific traffic flow."""
@@ -558,33 +556,7 @@ def get_junction_configurations(flow_id):
     except Exception as e:
         print(f"Error in get_junction_configurations: {str(e)}")
         return jsonify({"error": str(e)}), 500
-'''
 
-@app.route('/api/junctions/<junction_id>', methods=['DELETE'])
-def delete_junction(junction_id):
-    """Deletes a junction configuration."""
-    try:
-        # Loading existing junctions
-        existing_junctions = loading_junctions_configurations()
-
-        # Checking if junction exists
-        if junction_id not in existing_junctions:
-            return jsonify({"success": False, "error": "Junction not found"}), 404
-
-        # Deleting the junction
-        if not deleting_junction_configuration(junction_id):
-            return jsonify({"success": False, "error": "Failed to delete junction configuration"}), 500
-
-        return jsonify({
-            "success": True,
-            "message": "Junction deleted successfully"
-        })
-
-    except Exception as e:
-        print(f"Error in delete_junction: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
-'''
 @app.route('/api/traffic-flows/<flow_id>/junctions', methods=['POST'])
 def create_junction_configuration(flow_id):
     """Creates a new junction configuration for a traffic flow."""
@@ -937,8 +909,7 @@ def get_junctions_for_flow(flow_id):
         print(f"Error in get_junctions_for_flow: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-'''
 if __name__ == '__main__':
-    #init_database()  
+    init_database()  
     app.run(debug=True)
 
