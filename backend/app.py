@@ -75,7 +75,7 @@ def save_database(data):
 def get_traffic_flows():
     """Gets all traffic flow configurations."""
     try:
-        data
+        data = load_database()
         
         # Transform the data for frontend
         traffic_flows = []
