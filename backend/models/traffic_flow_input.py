@@ -1,5 +1,5 @@
-from backend.models.traffic_flow import TrafficFlow
-from backend.storage import saving_traffic_flow, loading_traffic_flows
+from ..models.traffic_flow import TrafficFlow
+from ..storage import saving_traffic_flow, loading_traffic_flows
 
 class TrafficFlowInput:
     def __init__(self, name: str, flows: dict, existing_traffic_config_names: set):

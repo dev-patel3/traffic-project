@@ -1,4 +1,4 @@
-from junction_config import JunctionConfiguration 
+from .junction_config import JunctionConfiguration 
 
 class JunctionConfigurationInput:
     def __init__(self, name: str, junctionConfig: JunctionConfiguration, 

@@ -1,5 +1,3 @@
-from junction_config_input import JunctionConfigurationInput
-
 class JunctionConfiguration:
     def __init__(self, name: str, 
                  lanes: dict[str, int], 
@@ -32,21 +30,6 @@ class JunctionConfiguration:
         self.is_priority = is_priority
         self.traffic_light_priority = traffic_light_priority
         self.traffic_flow_name = traffic_flow_name
-
-    #checking junction configuration is correct
-    def validateConfiguration(self) -> bool:
-        """
-        Validates this junction configuration by calling the validation class ,JunctionConfigurationInput.
-        """
-        validator = JunctionConfigurationInput(
-            name=self.name,
-            junctionConfig=self,
-            existing_junction_config_names=set(),  # creates empty set, will later be replaced with actual data
-            existing_traffic_config_names=set()   
-        )
-
-        return validator.validate() # calls the validation method and returns the result
-
 
     #allows objects to be stored as JSON
     #converting object to dict
