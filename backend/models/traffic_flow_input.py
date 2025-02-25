@@ -38,7 +38,8 @@ class TrafficFlowInput:
                     self.errors.append(f"Incoming flow for {direction} ({incoming_flow} vph) is invalid.")
             
                 # Check if sum matches incoming flow
-                if total_exit_flow != incoming_flow:
+            
+                if abs(total_exit_flow - incoming_flow) > 0.01:
                     self.errors.append(f"Total exit flow ({total_exit_flow} vph) for {direction} does not match incoming flow ({incoming_flow} vph).")
 
         return len(self.errors) == 0

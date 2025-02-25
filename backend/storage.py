@@ -67,6 +67,17 @@ def saving_traffic_flow(flow: TrafficFlow) -> bool:
     traffic_flow_data["traffic_flow_configurations"][flow.name] = flow.to_dict()
     return saving_traffic_flows(traffic_flow_data) # updated list saved to JSON
 
+# New function for updating an existing traffic flow
+def updating_traffic_flow(flow: TrafficFlow) -> bool:
+    traffic_flow_data = loading_traffic_flows()
+
+    if "traffic_flow_configurations" not in traffic_flow_data:
+        traffic_flow_data["traffic_flow_configurations"] = {}
+
+    # Update existing entry or create new one
+    traffic_flow_data["traffic_flow_configurations"][flow.name] = flow.to_dict()
+    return saving_traffic_flows(traffic_flow_data)
+
 # returning a list of JUNCTION CONFIGURATION dicts
 def loading_junctions_configurations() -> dict:
     if not os.path.exists(JSON_FILE_PATH):

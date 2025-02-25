@@ -7,6 +7,7 @@ from .storage import (
     getting_traffic_flow,
     deleting_traffic_flow,
     saving_traffic_flow,
+    updating_traffic_flow,
     loading_junctions_configurations,
     saving_junction_configurations,
     getting_junction_configuration,
@@ -201,7 +202,7 @@ def update_traffic_flow(flow_id):
 
         data = loading_traffic_flows()
 
-        if new_name in data["traffic_flow_configurations"] and new_name != flow_id:
+        if new_name != flow_id and new_name in data["traffic_flow_configurations"]:
             return jsonify({
                 "success": False,
                 "error": f"Traffic flow configuration '{new_name}' already exists."
@@ -241,18 +242,26 @@ def update_traffic_flow(flow_id):
                 if junction.get("traffic_flow_config") == flow_id:
                     junction["traffic_flow_config"] = new_name
 
-            # Delete the old traffic flow
+            # Delete the old traffic flow first
             if not deleting_traffic_flow(flow_id):
                 return jsonify({
                     "success": False,
                     "error": "Failed to delete the old traffic flow configuration"
                 }), 500
                 
-        if not saving_traffic_flow(traffic_flow):
-            return jsonify({
-                "success": False,
-                "error": "Failed to save the updated traffic flow configuration"
-            }), 500
+            # Then save the new one
+            if not saving_traffic_flow(traffic_flow):
+                return jsonify({
+                    "success": False,
+                    "error": "Failed to save the updated traffic flow configuration"
+                }), 500
+        else:
+            # If the name hasn't changed, use the updating function instead
+            if not updating_traffic_flow(traffic_flow):
+                return jsonify({
+                    "success": False,
+                    "error": "Failed to update the traffic flow configuration"
+                }), 500
         
         return jsonify({
             "success": True,
