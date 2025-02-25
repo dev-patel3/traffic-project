@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, ArrowRight } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Alert, AlertDescription } from '../ui/alert';
 
@@ -30,8 +30,6 @@ const useAPI = () => {
 
 const SavedConfigurations = ({ onNavigate }) => {
   const [trafficFlows, setTrafficFlows] = useState([]);
-  const [selectedFlowId, setSelectedFlowId] = useState(null);
-  const [junctionConfigs, setJunctionConfigs] = useState({});
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deleteInProgress, setDeleteInProgress] = useState(null);
@@ -89,24 +87,6 @@ const SavedConfigurations = ({ onNavigate }) => {
     loadTrafficFlows();
   }, []);
 
-  // Handle flow selection and load junctions
-  const handleFlowSelection = async (flowId) => {
-    try {
-      if (selectedFlowId === flowId) {
-        setSelectedFlowId(null);
-        return;
-      }
-      setSelectedFlowId(flowId);
-      
-      if (!junctionConfigs[flowId]) {
-        const data = await fetchData(`/api/traffic-flows/${flowId}/junctions`);
-        setJunctionConfigs(prev => ({ ...prev, [flowId]: data }));
-      }
-    } catch (err) {
-      setError(`Failed to load junction configurations: ${err.message}`);
-    }
-  };
-
   // Handle flow deletion
   const handleDelete = async (flowId, event) => {
     event.stopPropagation();
@@ -117,17 +97,19 @@ const SavedConfigurations = ({ onNavigate }) => {
       await deleteData(`/api/traffic-flows/${flowId}`);
       
       setTrafficFlows(prev => prev.filter(flow => flow.id !== flowId));
-      if (selectedFlowId === flowId) setSelectedFlowId(null);
-      setJunctionConfigs(prev => {
-        const newConfigs = { ...prev };
-        delete newConfigs[flowId];
-        return newConfigs;
-      });
     } catch (err) {
       setError(`Failed to delete configuration: ${err.message}`);
     } finally {
       setDeleteInProgress(null);
     }
+  };
+
+  const viewJunctionsForConfig = (configId, configName) => {
+    onNavigate('configJunctions', { configId, configName });
+  };
+
+  const createNewJunction = (configId, configName) => {
+    onNavigate('junctionDesign', { configId, configName });
   };
 
   if (loading && trafficFlows.length === 0) {
@@ -166,96 +148,56 @@ const SavedConfigurations = ({ onNavigate }) => {
 
           {/* Traffic Flow List */}
           {trafficFlows.map((flow) => (
-            <div key={flow.id} className="space-y-2">
-              <Card 
-                className={`p-6 shadow-sm bg-white border-gray-100 cursor-pointer
-                           ${selectedFlowId === flow.id ? 'ring-2 ring-blue-500' : 'hover:bg-gray-50'}
-                           ${deleteInProgress === flow.id ? 'opacity-50' : ''}`}
-                onClick={() => handleFlowSelection(flow.id)}
-              >
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <h3 className="font-medium text-gray-900">{flow.name}</h3>
-                    <p className="text-sm text-gray-500">
-                      {`Northbound: ${flow.northVPH} VPH, Southbound: ${flow.southVPH} VPH, 
-                        Eastbound: ${flow.eastVPH} VPH, Westbound: ${flow.westVPH} VPH. 
-                        Saved Junctions: ${junctionConfigs[flow.id]?.length || 0}`}
-                    </p>
+            <Card 
+              key={flow.id}
+              className={`p-6 shadow-sm bg-white border-gray-100 cursor-pointer hover:bg-gray-50
+                         ${deleteInProgress === flow.id ? 'opacity-50' : ''}`}
+              onClick={() => viewJunctionsForConfig(flow.id, flow.name)}
+            >
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <div className="flex items-center">
+                    <h3 className="font-medium text-gray-900 flex items-center">
+                      {flow.name}
+                      <ArrowRight className="h-4 w-4 ml-2 text-gray-400" />
+                    </h3>
                   </div>
-                  <div className="flex space-x-2">
+                  <p className="text-sm text-gray-500">
+                    {`Northbound: ${flow.northVPH} VPH, Southbound: ${flow.southVPH} VPH, 
+                      Eastbound: ${flow.eastVPH} VPH, Westbound: ${flow.westVPH} VPH. 
+                      Saved Junctions: ${flow.junctionCount || 0}`}
+                  </p>
                   <button 
-                      className="p-2 hover:bg-gray-100 rounded-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onNavigate('editTraffic', { configId: flow.id });
-                      }}
-                      disabled={deleteInProgress === flow.id}
-                    >
-                      <Edit2 className="h-4 w-4 text-gray-600" />
-                    </button>
-                    <button 
-                      className="p-2 hover:bg-gray-100 rounded-full"
-                      onClick={(e) => handleDelete(flow.id, e)}
-                      disabled={deleteInProgress === flow.id}
-                    >
-                      <Trash2 className="h-4 w-4 text-gray-600" />
-                    </button>
-                  </div>
+                    className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-md text-sm hover:bg-gray-800"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      createNewJunction(flow.id, flow.name);
+                    }}
+                  >
+                    Create New Junction
+                  </button>
                 </div>
-              </Card>
-              {/* Junction Configurations */}
-              {selectedFlowId === flow.id && junctionConfigs[flow.id] && (
-                <div className="ml-8 space-y-2">
-                  {junctionConfigs[flow.id].map((junction) => (
-                    <Card key={junction.id} className="p-4 shadow-sm bg-white border-gray-100">
-                      <div className="space-y-1">
-                        <div className="flex justify-between items-start">
-                          <h4 className="font-medium text-gray-900">{junction.name || 'Unnamed Junction'}</h4>
-                          <div className="flex space-x-2">
-                          <button 
-                              className="p-2 hover:bg-gray-100 rounded-full"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                console.log('Junction ID being passed:', junction.id); // Debug log 
-                                onNavigate('editJunction', { junctionId: junction.id });
-                              }}
-                              disabled={deleteInProgress === junction.id}
-                            >
-                              <Edit2 className="h-4 w-4 text-gray-600" />
-                            </button>
-                            <button 
-                              className="p-2 hover:bg-gray-100 rounded-full"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (window.confirm('Are you sure you want to delete this junction?')) {
-                                  // Add deletion logic here
-                                  console.log('Delete junction:', junction.id);
-                                }
-                              }}
-                              disabled={deleteInProgress === junction.id}
-                            >
-                              <Trash2 className="h-4 w-4 text-gray-600" />
-                            </button>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          Lanes: {junction.lanes}, 
-                          Left Turn Lanes: {junction.hasLeftTurnLanes ? 'Yes' : 'No'}, 
-                          Bus/Cycle Lanes: {junction.hasBusCycleLanes ? 'Yes' : 'No'}
-                        </p>
-                        <div className="mt-2">
-                          <p className="text-sm font-medium text-gray-900">Performance Metrics:</p>
-                          <p className="text-sm text-gray-500">
-                            Average Wait Time: {junction.metrics?.avgWaitTime || 0}s, 
-                            Max Queue Length: {junction.metrics?.maxQueueLength || 0} vehicles
-                          </p>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
+                <div className="flex space-x-2">
+                  <button 
+                    className="p-2 hover:bg-gray-100 rounded-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onNavigate('editTraffic', { configId: flow.id });
+                    }}
+                    disabled={deleteInProgress === flow.id}
+                  >
+                    <Edit2 className="h-4 w-4 text-gray-600" />
+                  </button>
+                  <button 
+                    className="p-2 hover:bg-gray-100 rounded-full"
+                    onClick={(e) => handleDelete(flow.id, e)}
+                    disabled={deleteInProgress === flow.id}
+                  >
+                    <Trash2 className="h-4 w-4 text-gray-600" />
+                  </button>
                 </div>
-              )}
-            </div>
+              </div>
+            </Card>
           ))}
         </div>
       </main>

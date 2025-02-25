@@ -3,8 +3,13 @@ import { Input } from '../ui/input';
 import { Card } from '../ui/card';
 import { Save } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
+import { Label } from '../ui/label';
+import { Slider } from '../ui/slider';
 
 const DirectionInputs = ({ direction, values, onChange }) => {
+  const [error, setError] = useState('');
+  const [remainingFlow, setRemainingFlow] = useState(0);
+
   const exits = {
     Northbound: ['north', 'east', 'west'],
     Southbound: ['south', 'east', 'west'],
@@ -12,12 +17,41 @@ const DirectionInputs = ({ direction, values, onChange }) => {
     Westbound: ['west', 'north', 'south']
   };
 
+  useEffect(() => {
+    // Calculate remaining flow for distribution
+    const totalExits = Object.entries(values)
+      .filter(([key]) => key.startsWith('exit_'))
+      .reduce((sum, [_, val]) => sum + (parseInt(val) || 0), 0);
+    
+    setRemainingFlow(calculateTotal() - totalExits);
+  }, [values]);
+
   const handleExitChange = (exit, value) => {
+    const numValue = parseInt(value) || 0;
+    
+    // Calculate the current total of all other exits
+    const otherExitsTotal = Object.entries(values)
+      .filter(([key]) => key.startsWith('exit_') && key !== `exit_${exit}`)
+      .reduce((sum, [_, val]) => sum + (parseInt(val) || 0), 0);
+    
+    // Don't allow values that would make total exceed 2000
+    if (numValue + otherExitsTotal > 2000) {
+      setError(`Exit flows cannot exceed 2000 VPH`);
+      return;
+    }
+
     const newValues = {
       ...values,
-      [`exit_${exit}`]: parseInt(value) || 0
+      [`exit_${exit}`]: numValue
     };
+    
+    setError('');
     onChange(newValues);
+  };
+
+  const handleSliderChange = (exit, sliderValue) => {
+    const numValue = parseInt(sliderValue[0] || 0);
+    handleExitChange(exit, numValue);
   };
 
   const calculateTotal = () => {
@@ -26,30 +60,50 @@ const DirectionInputs = ({ direction, values, onChange }) => {
       .reduce((sum, [_, value]) => sum + (parseInt(value) || 0), 0);
   };
 
+  const total = calculateTotal();
+
   return (
     <Card className="p-6 shadow-sm bg-white border-gray-100">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-medium">{direction} Traffic Flow</h2>
-          <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded">
-            Total: {calculateTotal()} VPH
+          <span className={`text-sm font-medium px-3 py-1 rounded ${
+            total <= 2000 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            Total: {total} VPH
           </span>
         </div>
-        <div className="space-y-4">
+
+        {error && (
+          <div className="text-red-500 text-sm">{error}</div>
+        )}
+
+        <div className="space-y-6">
           {exits[direction].map(exit => (
             <div key={exit}>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Label className="block text-sm font-medium text-gray-700 mb-2">
                 Exiting {exit.charAt(0).toUpperCase() + exit.slice(1)}
-              </label>
-              <Input
-                type="number"
-                min="0"
-                max="2000"
-                value={values[`exit_${exit}`] || ''}
-                onChange={(e) => handleExitChange(exit, e.target.value)}
-                placeholder={`Enter vehicles per hour exiting ${exit}`}
-                className="max-w-2xl"
-              />
+              </Label>
+              <div className="space-y-4">
+                <Input
+                  type="number"
+                  min="0"
+                  max="2000"
+                  value={values[`exit_${exit}`] || ''}
+                  onChange={(e) => handleExitChange(exit, e.target.value)}
+                  placeholder={`Enter vehicles per hour exiting ${exit}`}
+                  className="max-w-2xl"
+                />
+                <div className="pt-2 pb-4 px-1 max-w-2xl">
+                  <Slider
+                    defaultValue={[values[`exit_${exit}`] || 0]}
+                    value={[values[`exit_${exit}`] || 0]}
+                    max={2000}
+                    step={5}
+                    onValueChange={(value) => handleSliderChange(exit, value)}
+                  />
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -243,7 +297,9 @@ const EditTrafficConfig = ({ configId, onNavigate }) => {
           <Card className="p-6 shadow-sm bg-white border-gray-100">
             <div className="space-y-4">
               <h2 className="text-lg font-medium">Edit Traffic Configuration</h2>
+              <Label htmlFor="config-name">Configuration Name</Label>
               <Input
+                id="config-name"
                 placeholder="Configuration name"
                 value={configName}
                 onChange={(e) => setConfigName(e.target.value)}

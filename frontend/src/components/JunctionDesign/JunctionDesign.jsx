@@ -138,7 +138,7 @@ const DirectionForm = ({ direction, values, onChange }) => {
   );
 };
 
-const JunctionDesign = ({ onNavigate, previousPage }) => {
+const JunctionDesign = ({ onNavigate, configId, configName, previousPage }) => {
   const [junctionName, setJunctionName] = useState('');
   const [formState, setFormState] = useState({
     northbound: {
@@ -216,13 +216,15 @@ const JunctionDesign = ({ onNavigate, previousPage }) => {
     // Process form data
     const formData = {
       name: junctionName,
+      traffic_flow_config: configId, // Include the traffic flow configuration ID
       ...formState
     };
 
     // Handle different actions
     if (action === 'save') {
       console.log('Saving junction:', formData);
-      onNavigate('junctionSaved');
+      // After successful save, navigate back to the configuration junctions page
+      onNavigate('configJunctions', { configId, configName });
     } else if (action === 'simulate') {
       console.log('Running simulation with:', formData);
       onNavigate('simulation');
@@ -233,7 +235,8 @@ const JunctionDesign = ({ onNavigate, previousPage }) => {
     <div className="min-h-screen bg-gray-100">
       <main className="max-w-7xl mx-auto px-4 py-6">
         <div className="space-y-6">
-          <ConfigInfo />
+          {/* Display Traffic Configuration Info */}
+          <ConfigInfo configId={configId} />
 
           {/* Junction Name */}
           <Card className="p-6 shadow-sm bg-white border-gray-100">
@@ -262,7 +265,7 @@ const JunctionDesign = ({ onNavigate, previousPage }) => {
           {/* Action Buttons */}
           <div className="flex justify-end space-x-4">
             <button
-              onClick={() => onNavigate(previousPage || 'junctionSaved')}
+              onClick={() => onNavigate('configJunctions', { configId, configName })}
               className="px-8 py-3 text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
             >
               Cancel

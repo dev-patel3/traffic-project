@@ -18,7 +18,11 @@ class TrafficFlowInput:
                 if not isinstance(incoming_flow, int) or not (0 <= incoming_flow <= 2000):
                     self.errors.append(f"Traffic flow for {direction} must be a non-negative whole number in vph, between 0 and 2000.")
             else:
-                self.errors.append(f"Missing {direction} flow data.")
+                # Initialize missing direction with empty values
+                self.flows[direction] = {
+                    'incoming_flow': 0,
+                    'exits': {}
+                }
 
         return len(self.errors) == 0
 
@@ -34,12 +38,11 @@ class TrafficFlowInput:
                 total_exit_flow = sum(exit_flows.values())
 
                 # Ensure incoming flow is defined correctly
-                if incoming_flow <= 0 or incoming_flow > 2000:
+                if incoming_flow < 0 or incoming_flow > 2000:
                     self.errors.append(f"Incoming flow for {direction} ({incoming_flow} vph) is invalid.")
             
-                # Check if sum matches incoming flow
-            
-                if abs(total_exit_flow - incoming_flow) > 0.01:
+                # Check if sum matches incoming flow (with small tolerance for rounding)
+                if abs(total_exit_flow - incoming_flow) > 1:
                     self.errors.append(f"Total exit flow ({total_exit_flow} vph) for {direction} does not match incoming flow ({incoming_flow} vph).")
 
         return len(self.errors) == 0

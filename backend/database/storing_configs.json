@@ -37,43 +37,6 @@
             }
          }
       },
-      "LateNight": {
-         "name": "LateNight",
-         "flows": {
-            "northbound": {
-               "incoming_flow": 100,
-               "exits": {
-                  "exit_north": 70,
-                  "exit_east": 15,
-                  "exit_west": 15
-               }
-            },
-            "southbound": {
-               "incoming_flow": 120,
-               "exits": {
-                  "exit_south": 84,
-                  "exit_east": 18,
-                  "exit_west": 18
-               }
-            },
-            "eastbound": {
-               "incoming_flow": 80,
-               "exits": {
-                  "exit_east": 56,
-                  "exit_north": 12,
-                  "exit_south": 12
-               }
-            },
-            "westbound": {
-               "incoming_flow": 90,
-               "exits": {
-                  "exit_west": 63,
-                  "exit_north": 13,
-                  "exit_south": 14
-               }
-            }
-         }
-      },
       "SchoolRush": {
          "name": "SchoolRush",
          "flows": {
@@ -184,6 +147,43 @@
                }
             }
          }
+      },
+      "test2": {
+         "name": "test2",
+         "flows": {
+            "northbound": {
+               "incoming_flow": 590,
+               "exits": {
+                  "exit_north": 190,
+                  "exit_east": 195,
+                  "exit_west": 205
+               }
+            },
+            "southbound": {
+               "incoming_flow": 330,
+               "exits": {
+                  "exit_east": 138,
+                  "exit_south": 77,
+                  "exit_west": 115
+               }
+            },
+            "eastbound": {
+               "incoming_flow": 460,
+               "exits": {
+                  "exit_north": 165,
+                  "exit_east": 130,
+                  "exit_south": 165
+               }
+            },
+            "westbound": {
+               "incoming_flow": 220,
+               "exits": {
+                  "exit_north": 35,
+                  "exit_south": 85,
+                  "exit_west": 100
+               }
+            }
+         }
       }
    },
    "junction_configurations": {
@@ -239,52 +239,6 @@
             "maxQueueLength": 12,
             "efficiencyScore": 0.65,
             "sustainabilityScore": 0.92
-         }
-      },
-      "NightModeJunction": {
-         "name": "NightModeJunction",
-         "traffic_flow_config": "LateNight",
-         "northbound": {
-            "enable_bus_cycle_lane": false,
-            "enable_left_turn_lane": false,
-            "num_lanes": 1,
-            "pedestrian_crossing_duration": 15,
-            "pedestrian_crossing_requests_per_hour": 5,
-            "pedestrian_crossing_enabled": true,
-            "traffic_priority": 2
-         },
-         "southbound": {
-            "enable_bus_cycle_lane": false,
-            "enable_left_turn_lane": false,
-            "num_lanes": 1,
-            "pedestrian_crossing_duration": 15,
-            "pedestrian_crossing_requests_per_hour": 5,
-            "pedestrian_crossing_enabled": true,
-            "traffic_priority": 1
-         },
-         "eastbound": {
-            "enable_bus_cycle_lane": false,
-            "enable_left_turn_lane": false,
-            "num_lanes": 1,
-            "pedestrian_crossing_duration": 15,
-            "pedestrian_crossing_requests_per_hour": 5,
-            "pedestrian_crossing_enabled": true,
-            "traffic_priority": 3
-         },
-         "westbound": {
-            "enable_bus_cycle_lane": false,
-            "enable_left_turn_lane": false,
-            "num_lanes": 1,
-            "pedestrian_crossing_duration": 15,
-            "pedestrian_crossing_requests_per_hour": 5,
-            "pedestrian_crossing_enabled": true,
-            "traffic_priority": 4
-         },
-         "metrics": {
-            "avgWaitTime": 15,
-            "maxQueueLength": 4,
-            "efficiencyScore": 0.95,
-            "sustainabilityScore": 0.75
          }
       },
       "SchoolZoneJunction": {

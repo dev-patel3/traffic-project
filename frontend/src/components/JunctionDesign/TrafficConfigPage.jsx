@@ -30,6 +30,7 @@ const TrafficConfigPage = ({ onNavigate, previousPage, editFlowId = null }) => {
         }
         
         const data = await response.json();
+        console.log("Fetched configuration:", data);
         
         // Set configuration name
         setConfigName(data.name || data.id);
@@ -78,6 +79,7 @@ const TrafficConfigPage = ({ onNavigate, previousPage, editFlowId = null }) => {
           setDirectionData(adaptedData);
         }
       } catch (error) {
+        console.error("Error loading configuration:", error);
         setErrors([`Failed to load configuration: ${error.message}`]);
       } finally {
         setIsLoading(false);
@@ -117,9 +119,9 @@ const TrafficConfigPage = ({ onNavigate, previousPage, editFlowId = null }) => {
         newErrors.push(`${direction} traffic flow must be between 0 and 2000 VPH`);
       }
 
-      const exitSum = Object.values(data.exits).reduce((sum, val) => sum + val, 0);
-      if (Math.abs(exitSum - data.incoming_flow) > 0.01) { // Using small epsilon for float comparison
-        newErrors.push(`${direction} exit flows must sum to incoming traffic flow`);
+      const exitSum = Object.values(data.exits).reduce((sum, val) => sum + (parseInt(val) || 0), 0);
+      if (Math.abs(exitSum - data.incoming_flow) > 1) { // Using small epsilon for float comparison
+        newErrors.push(`${direction} exit flows (${exitSum}) must sum to incoming traffic flow (${data.incoming_flow})`);
       }
     });
     
@@ -161,15 +163,17 @@ const TrafficConfigPage = ({ onNavigate, previousPage, editFlowId = null }) => {
       });
 
       const data = await response.json();
+      console.log("Response:", data);
 
       if (!data.success) {
-        setErrors(data.errors || ['Save failed']);
+        setErrors(Array.isArray(data.errors) ? data.errors : [data.error || 'Save failed']);
         setIsSubmitting(false);
         return;
       }
 
       onNavigate('saved');
     } catch (error) {
+      console.error("Error saving configuration:", error);
       setErrors(['Failed to save configuration. Please try again.']);
       setIsSubmitting(false);
     }

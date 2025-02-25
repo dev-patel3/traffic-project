@@ -57,7 +57,7 @@ function App() {
     editTraffic: 'Edit Traffic Configuration',
     junctionDesign: 'Junction Design',
     simulation: 'Junction Simulation',
-    junctionSaved: 'Saved Junctions',
+    configJunctions: 'Configuration Junctions', // Updated title
     help: 'Help Guide',
     editJunction: 'Edit Junction Design',
   };
@@ -101,7 +101,11 @@ function App() {
               </button>
             )}
           </div>
-          <h1 className="text-xl font-semibold">{pageTitles[currentPage]}</h1>
+          <h1 className="text-xl font-semibold">{
+            currentPage === 'configJunctions' && navigationParams.configName
+              ? `Junctions for ${navigationParams.configName}`
+              : pageTitles[currentPage]
+          }</h1>
           <div className="flex items-center space-x-6">
           {currentPage !== 'home' && (
             <button 
@@ -113,22 +117,13 @@ function App() {
             </button>
           )}
           {shouldShowSaved && (
-              <>
-                <button 
-                  onClick={() => navigateTo('saved')}
-                  className="flex items-center space-x-1 hover:text-gray-600"
-                >
-                  <FolderOpen className="h-5 w-5" />
-                  <span className="text-sm">Saved Configurations</span>
-                </button>
-                <button 
-                  onClick={() => navigateTo('junctionSaved')}
-                  className="flex items-center space-x-1 hover:text-gray-600"
-                >
-                  <FolderOpen className="h-5 w-5" />
-                  <span className="text-sm">Saved Junctions</span>
-                </button>
-              </>
+              <button 
+                onClick={() => navigateTo('saved')}
+                className="flex items-center space-x-1 hover:text-gray-600"
+              >
+                <FolderOpen className="h-5 w-5" />
+                <span className="text-sm">Saved Configurations</span>
+              </button>
             )}
             <button 
               className="flex items-center space-x-1 cursor-pointer"
@@ -158,12 +153,20 @@ function App() {
         )}
         {currentPage === 'junctionDesign' && (
           <JunctionDesign 
-            onNavigate={navigateTo} 
+            onNavigate={navigateTo}
+            configId={navigationParams.configId}
+            configName={navigationParams.configName}
             previousPage={navigationHistory[navigationHistory.length - 2]}
           />
         )}
         {currentPage === 'simulation' && <SimulationPage onNavigate={navigateTo} />}
-        {currentPage === 'junctionSaved' && <SavedJunctions onNavigate={navigateTo} />}
+        {currentPage === 'configJunctions' && (
+          <SavedJunctions 
+            onNavigate={navigateTo}
+            configId={navigationParams.configId}
+            configName={navigationParams.configName}
+          />
+        )}
         {currentPage === 'editJunction' && (
           <EditJunctionDesign 
             junctionId={navigationParams.junctionId}
