@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, ArrowLeft, Maximize2, X } from 'lucide-react';
+import { Card } from '../ui/card';
+import JunctionVisualization from './JunctionVisualization';
 
 const ResultBox = ({ value, label }) => (
-  <div className="text-center p-4 bg-white rounded-lg shadow-sm space-y-2">
-    <div className="text-3xl font-bold">{value}</div>
+  <div className="text-center p-4 bg-white rounded-lg shadow-sm flex flex-col justify-center items-center h-28">
+    <div className="text-3xl font-bold mb-2">{value}</div>
     <div className="text-sm text-gray-500">{label}</div>
   </div>
 );
@@ -41,18 +43,75 @@ const DirectionSelector = ({ currentDirection, onDirectionChange }) => {
   );
 };
 
-const JunctionPreview = () => (
-  <div className="aspect-square w-full max-w-md mx-auto bg-gray-200 rounded-lg flex items-center justify-center">
-    <span className="text-gray-500 text-sm">Junction Preview</span>
-  </div>
-);
-
-const SimulationPage = () => {
+const JunctionSimulation = ({ onNavigate }) => {
   const [currentDirection, setCurrentDirection] = useState('Northbound');
+  const [showFullVisualization, setShowFullVisualization] = useState(false);
+
+  // Handle escape key to exit full screen
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && showFullVisualization) {
+        setShowFullVisualization(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    
+    // Prevent scrolling when in full screen
+    if (showFullVisualization) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'auto';
+    };
+  }, [showFullVisualization]);
+
+  // Preset junction configuration (using the format matching what would be received from the backend)
+  const sampleJunctionConfig = {
+    name: "Example Junction Name",
+    traffic_flow_config: "Traffic Config Name",
+    northbound: {
+      num_lanes: 3,
+      enable_left_turn_lane: true,
+      enable_bus_cycle_lane: true,
+      transport_type: 'bus',
+      pedestrian_crossing_duration: 15,
+      pedestrian_crossing_requests_per_hour: 30,
+      traffic_priority: 3
+    },
+    southbound: {
+      num_lanes: 3,
+      enable_left_turn_lane: true,
+      enable_bus_cycle_lane: false,
+      pedestrian_crossing_duration: 15,
+      pedestrian_crossing_requests_per_hour: 30,
+      traffic_priority: 3
+    },
+    eastbound: {
+      num_lanes: 2,
+      enable_left_turn_lane: true,
+      enable_bus_cycle_lane: false,
+      pedestrian_crossing_duration: 10,
+      pedestrian_crossing_requests_per_hour: 20,
+      traffic_priority: 2
+    },
+    westbound: {
+      num_lanes: 2,
+      enable_left_turn_lane: true,
+      enable_bus_cycle_lane: true,
+      transport_type: 'bicycle',
+      pedestrian_crossing_duration: 10,
+      pedestrian_crossing_requests_per_hour: 20,
+      traffic_priority: 2
+    }
+  };
   
+  // Using placeholder data for simulation results
   const simulationData = {
-    configName: "Morning Peak Traffic",
-    junctionName: "City Center Junction",
     results: {
       Northbound: {
         avgWaitTime: "2:50",
@@ -85,15 +144,34 @@ const SimulationPage = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       <main className="max-w-[1920px] mx-auto px-8 py-6">
-        <div className="text-xl font-medium mb-6">
-          {simulationData.configName} - {simulationData.junctionName}
+        <div className="flex justify-between items-center mb-6">
+          <div className="text-xl font-medium">
+            {sampleJunctionConfig.traffic_flow_config} - {sampleJunctionConfig.name}
+          </div>
+          <button
+            onClick={() => onNavigate('junctionSaved')}
+            className="flex items-center text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Junctions
+          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left section - Junction Preview */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <JunctionPreview />
+              {/* Cropped visualization with expand button */}
+              <div className="cropped-visualization">
+                <button 
+                  className="expand-button"
+                  onClick={() => setShowFullVisualization(true)}
+                  aria-label="Expand visualization"
+                >
+                  <Maximize2 size={20} />
+                </button>
+                <JunctionVisualization junctionConfig={sampleJunctionConfig} />
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <ResultBox value={`${simulationData.scores.efficiency}%`} label="Efficiency Score" />
@@ -106,7 +184,7 @@ const SimulationPage = () => {
           <div>
             <div className="bg-white rounded-lg shadow-sm p-6 h-full flex flex-col">
               <h2 className="text-xl font-medium text-gray-900 mb-4">Results</h2>
-              <div className="flex-grow flex flex-col justify-between mb-4">
+              <div className="flex-grow flex flex-col justify-between gap-4">
                 <ResultBox 
                   value={simulationData.results[currentDirection].avgWaitTime} 
                   label="Average Wait Time" 
@@ -128,8 +206,29 @@ const SimulationPage = () => {
           </div>
         </div>
       </main>
+
+      {/* Full-screen visualization modal */}
+      {showFullVisualization && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="text-xl font-medium">Junction Visualization</h2>
+              <button 
+                className="close-button" 
+                onClick={() => setShowFullVisualization(false)}
+                aria-label="Close full view"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <JunctionVisualization junctionConfig={sampleJunctionConfig} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default SimulationPage;
+export default JunctionSimulation;

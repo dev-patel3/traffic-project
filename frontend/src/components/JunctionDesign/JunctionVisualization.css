@@ -1,0 +1,117 @@
+/* JunctionVisualization.css */
+.junction-visualization-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .junction-visualization-container canvas {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+  }
+  
+  .cropped-visualization {
+    height: 400px;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Scale down the visualization to fit in the cropped view */
+  .cropped-visualization .junction-visualization-container {
+    transform: scale(0.65);
+    transform-origin: center;
+  }
+  
+  /* Full screen modal styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
+  }
+  
+  .modal-content {
+    background-color: white;
+    width: 90vw;
+    height: 90vh;
+    border-radius: 8px;
+    padding: 2rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .close-button {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: #666;
+  }
+  
+  .modal-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Expand button */
+  .expand-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background-color: rgba(255, 255, 255, 0.8);
+    color: #333;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: background-color 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .expand-button:hover {
+    background-color: rgba(255, 255, 255, 1);
+  }
+  
+  @media (max-width: 768px) {
+    .cropped-visualization {
+      height: 300px;
+    }
+    
+    .cropped-visualization .junction-visualization-container {
+      transform: scale(0.5);
+    }
+    
+    .modal-content {
+      width: 95vw;
+      height: 80vh;
+      padding: 1rem;
+    }
+  }
