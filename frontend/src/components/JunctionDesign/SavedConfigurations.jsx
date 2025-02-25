@@ -42,7 +42,44 @@ const SavedConfigurations = ({ onNavigate }) => {
     const loadTrafficFlows = async () => {
       try {
         const data = await fetchData('/api/traffic-flows');
-        setTrafficFlows(Array.isArray(data) ? data : []);
+        
+        // Transform data if needed to ensure consistent format
+        const transformedFlows = Array.isArray(data) ? data.map(flow => {
+          // Calculate flow totals for each direction
+          let northVPH = 0, southVPH = 0, eastVPH = 0, westVPH = 0;
+          
+          if (flow.flows) {
+            // New format
+            if (flow.flows.northbound) {
+              northVPH = flow.flows.northbound.incoming_flow || 
+                      Object.values(flow.flows.northbound.exits || {}).reduce((sum, val) => sum + val, 0);
+            }
+            if (flow.flows.southbound) {
+              southVPH = flow.flows.southbound.incoming_flow || 
+                      Object.values(flow.flows.southbound.exits || {}).reduce((sum, val) => sum + val, 0);
+            }
+            if (flow.flows.eastbound) {
+              eastVPH = flow.flows.eastbound.incoming_flow || 
+                      Object.values(flow.flows.eastbound.exits || {}).reduce((sum, val) => sum + val, 0);
+            }
+            if (flow.flows.westbound) {
+              westVPH = flow.flows.westbound.incoming_flow || 
+                      Object.values(flow.flows.westbound.exits || {}).reduce((sum, val) => sum + val, 0);
+            }
+          }
+          
+          return {
+            ...flow,
+            id: flow.id || flow.name,
+            name: flow.name || flow.id,
+            northVPH: flow.northVPH || northVPH,
+            southVPH: flow.southVPH || southVPH,
+            eastVPH: flow.eastVPH || eastVPH,
+            westVPH: flow.westVPH || westVPH
+          };
+        }) : [];
+        
+        setTrafficFlows(transformedFlows);
       } catch (err) {
         setError(`Failed to load configurations: ${err.message}`);
       } finally {
@@ -209,8 +246,8 @@ const SavedConfigurations = ({ onNavigate }) => {
                         <div className="mt-2">
                           <p className="text-sm font-medium text-gray-900">Performance Metrics:</p>
                           <p className="text-sm text-gray-500">
-                            Average Wait Time: {junction.avgWaitTime}s, 
-                            Max Queue Length: {junction.maxQueueLength} vehicles
+                            Average Wait Time: {junction.metrics?.avgWaitTime || 0}s, 
+                            Max Queue Length: {junction.metrics?.maxQueueLength || 0} vehicles
                           </p>
                         </div>
                       </div>

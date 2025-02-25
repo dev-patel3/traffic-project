@@ -7,9 +7,7 @@ from backend.models.junction_config import JunctionConfiguration
 JSON_FILE_PATH = "backend/database/storing_configs.json"
 
 #returning a list of traffic flow dicts
-
 def loading_traffic_flows() -> dict:
-
     if not os.path.exists(JSON_FILE_PATH):
         return {"traffic_flow_configurations": {}, "junction_configurations": {}}
     with open(JSON_FILE_PATH, "r") as file:
@@ -27,12 +25,10 @@ def saving_traffic_flows(data: dict) -> bool:
 
 #getting a traffic flow configuration by name, returns None if it is not found
 def getting_traffic_flow(name: str) -> Optional[dict]:
-
-        traffic_config_data = loading_traffic_flows() #loading the traffic flow data
-        return traffic_config_data["traffic_flow_configurations"].get(name, None)
+    traffic_config_data = loading_traffic_flows() #loading the traffic flow data
+    return traffic_config_data["traffic_flow_configurations"].get(name, None)
 
 def deleting_traffic_flow(name: str) -> bool:
-
     traffic_config_data = loading_traffic_flows()
 
     if name not in traffic_config_data["traffic_flow_configurations"]:
@@ -41,7 +37,7 @@ def deleting_traffic_flow(name: str) -> bool:
 
     del traffic_config_data["traffic_flow_configurations"][name]
 
-    #removing all jucntion config that are linked to the traffic
+    #removing all junction config that are linked to the traffic
     #flow being deleted
     new_junction_config = {} #creating an empty dictionary
     for key, junction_config in traffic_config_data["junction_configurations"].items():
@@ -56,9 +52,7 @@ def deleting_traffic_flow(name: str) -> bool:
 
 #saving a new traffic flow config to the JSON file
 #making sure no duplicate names exist
-
 def saving_traffic_flow(flow: TrafficFlow) -> bool:
-
     traffic_flow_data = loading_traffic_flows()
 
     if "traffic_flow_configurations" not in traffic_flow_data:
@@ -69,21 +63,18 @@ def saving_traffic_flow(flow: TrafficFlow) -> bool:
         return False
 
     #saving the new traffic flow with correct structure
-    #converting flow into a dictionary to be stored
+    #converting flow into a dictionary to be stored using the new format
     traffic_flow_data["traffic_flow_configurations"][flow.name] = flow.to_dict()
     return saving_traffic_flows(traffic_flow_data) # updated list saved to JSON
 
-
 # returning a list of JUNCTION CONFIGURATION dicts
-
 def loading_junctions_configurations() -> dict:
-
     if not os.path.exists(JSON_FILE_PATH):
         return {} #empty dictionary if file does not exist
 
     try:
         with open(JSON_FILE_PATH, "r") as file:
-            return json.load(file).get("junction_configurations", {}) # SON loaded as a list
+            return json.load(file).get("junction_configurations", {}) # JSON loaded as a list
     except Exception:
         return {} 
 
@@ -111,22 +102,14 @@ def saving_junction_configurations(data: list) -> bool:
     
 # getting a JUNCTION configuration by name, returns None if it is not found
 def getting_junction_configuration(name: str) -> Optional[dict]:
-
-        data = loading_junctions_configurations() # loading the junction configuration data
-        #for config in data:
-            #if config["name"] == name:
-             #   return config
-        #return None
-        return data.get(name, None) #avoids looping
+    data = loading_junctions_configurations() # loading the junction configuration data
+    return data.get(name, None) #avoids looping
 
 # deleting a junction configuration by name
 def deleting_junction_configuration(name: str) -> bool:
-
     data = loading_junctions_configurations()
 
-    #new_data = [config for config in data if config["name"] != name]
-
-    # if no chnages, junction configuration was not found
+    # if no changes, junction configuration was not found
     if name not in data:
         print(f"Error, Junction Configuration '{name}' not found")
         return False
@@ -135,15 +118,12 @@ def deleting_junction_configuration(name: str) -> bool:
     del data[name]
     return saving_junction_configurations(list(data.values())) # saving updated data, without deleted entry.
 
-# saving a new JUNCTION congfig to the JSON file
+# saving a new JUNCTION config to the JSON file
 # making sure no duplicate names exist & it belongs to a valid traffic flow configuration
-
 def saving_junction_configuration(junction: JunctionConfiguration) -> bool:
-
     data = loading_junctions_configurations()
 
     # check for duplicate junction name
-    #for config in data:
     if junction.name in data:
         print(f"Error, Junction configuration '{junction.name}' exists already")
         return False
@@ -154,7 +134,6 @@ def saving_junction_configuration(junction: JunctionConfiguration) -> bool:
         return False
         
     data[junction.name] = junction.to_dict()
-    #data.append(junction.to_dict())
 
     return saving_junction_configurations(list(data.values())) # updated list saved to JSON
 
@@ -168,7 +147,3 @@ def get_all_traffic_flows() -> list:
 def get_functions_for_traffic_flow(flow_name: str) -> list:
     junctions = loading_junctions_configurations()
     return [junction for junction in junctions.values() if junction["traffic_flow_config"] == flow_name]
-
-
-
-

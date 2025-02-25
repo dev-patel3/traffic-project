@@ -44,16 +44,34 @@ const ConfigInfo = ({ configId }) => {
           data = data[0];
         }
 
-        // Transform the data to match the expected format
+        // Transform the data to match the new format
         const transformedData = {
-          name: data.name,
-          flows: {
-            Northbound: data.northVPH || Object.values(data.northbound || {}).reduce((sum, val) => sum + val, 0),
-            Southbound: data.southVPH || Object.values(data.southbound || {}).reduce((sum, val) => sum + val, 0),
-            Eastbound: data.eastVPH || Object.values(data.eastbound || {}).reduce((sum, val) => sum + val, 0),
-            Westbound: data.westVPH || Object.values(data.westbound || {}).reduce((sum, val) => sum + val, 0)
-          }
+          name: data.name || data.id,
+          flows: {}
         };
+
+        // Handle different possible data structures
+        if (data.flows) {
+          // New format with flows property
+          ['Northbound', 'Southbound', 'Eastbound', 'Westbound'].forEach(direction => {
+            const dir = direction.toLowerCase();
+            const flowData = data.flows[dir];
+            if (flowData) {
+              transformedData.flows[direction] = flowData.incoming_flow || 
+                                               (flowData.exits ? Object.values(flowData.exits).reduce((sum, val) => sum + val, 0) : 0);
+            } else {
+              transformedData.flows[direction] = 0;
+            }
+          });
+        } else {
+          // Old format with northVPH, southVPH, etc.
+          transformedData.flows = {
+            Northbound: data.northVPH || 0,
+            Southbound: data.southVPH || 0,
+            Eastbound: data.eastVPH || 0,
+            Westbound: data.westVPH || 0
+          };
+        }
 
         setConfigData(transformedData);
       } catch (err) {

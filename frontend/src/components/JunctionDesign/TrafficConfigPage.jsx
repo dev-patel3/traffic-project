@@ -8,10 +8,10 @@ import TrafficDirectionSection from './TrafficDirectionSection';
 const TrafficConfigPage = ({ onNavigate, previousPage, editFlowId = null }) => {
   const [configName, setConfigName] = useState('');
   const [directionData, setDirectionData] = useState({
-    Northbound: { total: 0, exits: {} },
-    Eastbound: { total: 0, exits: {} },
-    Southbound: { total: 0, exits: {} },
-    Westbound: { total: 0, exits: {} }
+    northbound: { incoming_flow: 0, exits: {} },
+    eastbound: { incoming_flow: 0, exits: {} },
+    southbound: { incoming_flow: 0, exits: {} },
+    westbound: { incoming_flow: 0, exits: {} }
   });
   const [errors, setErrors] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,29 +32,51 @@ const TrafficConfigPage = ({ onNavigate, previousPage, editFlowId = null }) => {
         const data = await response.json();
         
         // Set configuration name
-        setConfigName(data.name);
+        setConfigName(data.name || data.id);
         
-        // Transform API data to match our state structure
-        const transformedData = {
-          Northbound: {
-            total: data.flows.northbound.total || 0,
-            exits: data.flows.northbound.exits || {}
-          },
-          Eastbound: {
-            total: data.flows.eastbound.total || 0,
-            exits: data.flows.eastbound.exits || {}
-          },
-          Southbound: {
-            total: data.flows.southbound.total || 0,
-            exits: data.flows.southbound.exits || {}
-          },
-          Westbound: {
-            total: data.flows.westbound.total || 0,
-            exits: data.flows.westbound.exits || {}
-          }
-        };
-        
-        setDirectionData(transformedData);
+        // Handle different possible data structures
+        if (data.flows) {
+          // New format with flows property
+          setDirectionData({
+            northbound: data.flows.northbound || { incoming_flow: 0, exits: {} },
+            eastbound: data.flows.eastbound || { incoming_flow: 0, exits: {} },
+            southbound: data.flows.southbound || { incoming_flow: 0, exits: {} },
+            westbound: data.flows.westbound || { incoming_flow: 0, exits: {} }
+          });
+        } else {
+          // Try to adapt from old format
+          const directions = ['northbound', 'eastbound', 'southbound', 'westbound'];
+          const adaptedData = {};
+          
+          directions.forEach(dir => {
+            const totalFlow = data[`${dir}VPH`] || 0;
+            // Create a distribution of exits if we have a total
+            if (totalFlow > 0) {
+              const exits = {};
+              const exitDirs = getExitDirections(dir);
+              const exitShare = Math.floor(totalFlow / exitDirs.length);
+              
+              exitDirs.forEach(exitDir => {
+                exits[`exit_${exitDir.toLowerCase()}`] = exitShare;
+              });
+              
+              // Adjust the last one to make sure they sum to total
+              if (exitDirs.length > 0) {
+                const lastDir = exitDirs[exitDirs.length - 1];
+                exits[`exit_${lastDir.toLowerCase()}`] += totalFlow - (exitShare * exitDirs.length);
+              }
+              
+              adaptedData[dir] = {
+                incoming_flow: totalFlow,
+                exits: exits
+              };
+            } else {
+              adaptedData[dir] = { incoming_flow: 0, exits: {} };
+            }
+          });
+          
+          setDirectionData(adaptedData);
+        }
       } catch (error) {
         setErrors([`Failed to load configuration: ${error.message}`]);
       } finally {
@@ -65,10 +87,21 @@ const TrafficConfigPage = ({ onNavigate, previousPage, editFlowId = null }) => {
     fetchExistingConfig();
   }, [editFlowId]);
 
+  // Helper function to get exit directions
+  const getExitDirections = (direction) => {
+    const dirMap = {
+      'northbound': ['north', 'east', 'west'],
+      'southbound': ['south', 'east', 'west'],
+      'eastbound': ['east', 'north', 'south'],
+      'westbound': ['west', 'north', 'south']
+    };
+    return dirMap[direction] || [];
+  };
+
   const handleDirectionUpdate = (direction, data) => {
     setDirectionData(prev => ({
       ...prev,
-      [direction]: data
+      [direction.toLowerCase()]: data
     }));
   };
 
@@ -80,16 +113,16 @@ const TrafficConfigPage = ({ onNavigate, previousPage, editFlowId = null }) => {
     }
 
     Object.entries(directionData).forEach(([direction, data]) => {
-      if (data.total < 0 || data.total > 2000) {
+      if (data.incoming_flow < 0 || data.incoming_flow > 2000) {
         newErrors.push(`${direction} traffic flow must be between 0 and 2000 VPH`);
       }
 
       const exitSum = Object.values(data.exits).reduce((sum, val) => sum + val, 0);
-      if (Math.abs(exitSum - data.total) > 0.01) { // Using small epsilon for float comparison
-        newErrors.push(`${direction} exit flows must sum to total traffic flow`);
+      if (Math.abs(exitSum - data.incoming_flow) > 0.01) { // Using small epsilon for float comparison
+        newErrors.push(`${direction} exit flows must sum to incoming traffic flow`);
       }
     });
-
+    
     return newErrors;
   };
 
@@ -112,32 +145,19 @@ const TrafficConfigPage = ({ onNavigate, previousPage, editFlowId = null }) => {
         
       const method = editFlowId ? 'PUT' : 'POST';
 
+      const requestData = {
+        name: configName,
+        flows: directionData
+      };
+
+      console.log("Submitting data:", JSON.stringify(requestData, null, 2));
+
       const response = await fetch(endpoint, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: configName,
-          flows: {
-            northbound: {
-              total: directionData.Northbound.total,
-              exits: directionData.Northbound.exits
-            },
-            eastbound: {
-              total: directionData.Eastbound.total,
-              exits: directionData.Eastbound.exits
-            },
-            southbound: {
-              total: directionData.Southbound.total,
-              exits: directionData.Southbound.exits
-            },
-            westbound: {
-              total: directionData.Westbound.total,
-              exits: directionData.Westbound.exits
-            }
-          }
-        })
+        body: JSON.stringify(requestData)
       });
 
       const data = await response.json();
@@ -148,7 +168,7 @@ const TrafficConfigPage = ({ onNavigate, previousPage, editFlowId = null }) => {
         return;
       }
 
-      onNavigate('home');
+      onNavigate('saved');
     } catch (error) {
       setErrors(['Failed to save configuration. Please try again.']);
       setIsSubmitting(false);
@@ -198,7 +218,7 @@ const TrafficConfigPage = ({ onNavigate, previousPage, editFlowId = null }) => {
             <TrafficDirectionSection 
               key={direction}
               direction={direction}
-              initialData={directionData[direction]}
+              initialData={directionData[direction.toLowerCase()]}
               onUpdate={(data) => handleDirectionUpdate(direction, data)}
             />
           ))}

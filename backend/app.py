@@ -39,21 +39,40 @@ def get_traffic_flows():
         junction_configurations = data.get("junction_configurations", {})
 
         # Transform the data for frontend
-        traffic_flows = [
-            {
+        traffic_flows = []
+        
+        for name, flow in traffic_configurations.items():
+            # Handle both old and new formats
+            if isinstance(flow, dict) and "flows" in flow:
+                # New format
+                flows = flow["flows"]
+                northVPH = (flows.get("northbound", {}).get("incoming_flow", 0) or 
+                         sum(flows.get("northbound", {}).get("exits", {}).values(), 0))
+                southVPH = (flows.get("southbound", {}).get("incoming_flow", 0) or 
+                         sum(flows.get("southbound", {}).get("exits", {}).values(), 0))
+                eastVPH = (flows.get("eastbound", {}).get("incoming_flow", 0) or 
+                        sum(flows.get("eastbound", {}).get("exits", {}).values(), 0))
+                westVPH = (flows.get("westbound", {}).get("incoming_flow", 0) or 
+                        sum(flows.get("westbound", {}).get("exits", {}).values(), 0))
+            else:
+                # Old format
+                northVPH = sum(flow.get("northbound", {}).values(), 0)
+                southVPH = sum(flow.get("southbound", {}).values(), 0)
+                eastVPH = sum(flow.get("eastbound", {}).values(), 0)
+                westVPH = sum(flow.get("westbound", {}).values(), 0)
+            
+            traffic_flows.append({
                 "id": name,
-                "name": name,
-                "northVPH": sum(flow["northbound"].values()),
-                "southVPH": sum(flow["southbound"].values()),
-                "eastVPH": sum(flow["eastbound"].values()),
-                "westVPH": sum(flow["westbound"].values()),
+                "name": flow.get("name", name),
+                "northVPH": northVPH,
+                "southVPH": southVPH,
+                "eastVPH": eastVPH,
+                "westVPH": westVPH,
                 "junctionCount": sum(
                     1 for junction in junction_configurations.values()
                     if junction.get("traffic_flow_config") == name
                 )
-            }
-            for name, flow in traffic_configurations.items()
-        ]
+            })
             
         return jsonify(traffic_flows)
         
@@ -70,25 +89,38 @@ def get_traffic_flow(flow_id):
         if not flow_config:
             return jsonify({"error": "Traffic flow not found"}), 404
             
-        # Transform the data for frontend
-        transformed_flow = {
-            "id": flow_id,
-            "name": flow_id,
-            "flows": {
-                "northbound": {
-                    "exits": flow_config["northbound"]
-                },
-                "southbound": {
-                    "exits": flow_config["southbound"]
-                },
-                "eastbound": {
-                    "exits": flow_config["eastbound"]
-                },
-                "westbound": {
-                    "exits": flow_config["westbound"]
+        # Transform the data for frontend, handling both old and new formats
+        if isinstance(flow_config, dict) and "flows" in flow_config:
+            # New format - keep as is
+            transformed_flow = {
+                "id": flow_id,
+                "name": flow_config.get("name", flow_id),
+                "flows": flow_config["flows"]
+            }
+        else:
+            # Old format - convert to new format
+            transformed_flow = {
+                "id": flow_id,
+                "name": flow_id,
+                "flows": {
+                    "northbound": {
+                        "incoming_flow": sum(flow_config.get("northbound", {}).values(), 0),
+                        "exits": flow_config.get("northbound", {})
+                    },
+                    "southbound": {
+                        "incoming_flow": sum(flow_config.get("southbound", {}).values(), 0),
+                        "exits": flow_config.get("southbound", {})
+                    },
+                    "eastbound": {
+                        "incoming_flow": sum(flow_config.get("eastbound", {}).values(), 0),
+                        "exits": flow_config.get("eastbound", {})
+                    },
+                    "westbound": {
+                        "incoming_flow": sum(flow_config.get("westbound", {}).values(), 0),
+                        "exits": flow_config.get("westbound", {})
+                    }
                 }
             }
-        }
         
         return jsonify(transformed_flow)
         
@@ -103,6 +135,16 @@ def create_traffic_flow():
         new_config = request.get_json()
         data = loading_traffic_flows()
         existing_names = set(data["traffic_flow_configurations"].keys())
+
+        # Extract flow rates from new format
+        flow_rates = {}
+        exit_distributions = {}
+        
+        for direction in ['northbound', 'southbound', 'eastbound', 'westbound']:
+            if direction in new_config["flows"]:
+                direction_data = new_config["flows"][direction]
+                flow_rates[direction] = direction_data.get("incoming_flow", 0)
+                exit_distributions[direction] = direction_data.get("exits", {})
 
         # Creates and validates TrafficFlowInput
         traffic_flow_input = TrafficFlowInput(
@@ -120,10 +162,8 @@ def create_traffic_flow():
         # Constructing a TrafficFlow object after validation
         traffic_flow = TrafficFlow(
             name=new_config["name"],
-            flow_rates={direction: sum(new_config["flows"][direction]["exits"].values())
-                       for direction in ['northbound', 'southbound', 'eastbound', 'westbound']},
-            exit_distributions={direction: new_config["flows"][direction]["exits"]
-                              for direction in ['northbound', 'southbound', 'eastbound', 'westbound']}
+            flow_rates=flow_rates,
+            exit_distributions=exit_distributions
         )
         
         if not saving_traffic_flow(traffic_flow):
@@ -167,6 +207,16 @@ def update_traffic_flow(flow_id):
                 "error": f"Traffic flow configuration '{new_name}' already exists."
             }), 400
         
+        # Extract flow rates and exit distributions from new format
+        flow_rates = {}
+        exit_distributions = {}
+        
+        for direction in ['northbound', 'southbound', 'eastbound', 'westbound']:
+            if direction in update_config["flows"]:
+                direction_data = update_config["flows"][direction]
+                flow_rates[direction] = direction_data.get("incoming_flow", 0)
+                exit_distributions[direction] = direction_data.get("exits", {})
+        
         traffic_flow_input = TrafficFlowInput(
             name=new_name,
             flows=update_config["flows"],
@@ -181,17 +231,17 @@ def update_traffic_flow(flow_id):
 
         traffic_flow = TrafficFlow(
             name=new_name,
-            flow_rates={direction: sum(update_config["flows"][direction]["exits"].values())
-                       for direction in ['northbound', 'southbound', 'eastbound', 'westbound']},
-            exit_distributions={direction: update_config["flows"][direction]["exits"]
-                              for direction in ['northbound', 'southbound', 'eastbound', 'westbound']}
+            flow_rates=flow_rates,
+            exit_distributions=exit_distributions
         )
 
         if new_name != flow_id:
+            # Update references to this traffic flow in junction configurations
             for junction in data.get("junction_configurations", {}).values():
                 if junction.get("traffic_flow_config") == flow_id:
                     junction["traffic_flow_config"] = new_name
 
+            # Delete the old traffic flow
             if not deleting_traffic_flow(flow_id):
                 return jsonify({
                     "success": False,

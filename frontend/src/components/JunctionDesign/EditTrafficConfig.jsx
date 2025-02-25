@@ -77,46 +77,58 @@ const EditTrafficConfig = ({ configId, onNavigate }) => {
         console.log("Fetching config with ID:", configId);
         setLoading(true);
         
-        // Get all traffic flows
-        const response = await fetch('http://localhost:5000/api/traffic-flows');
+        // Fetch specific traffic flow by ID
+        const response = await fetch(`http://localhost:5000/api/traffic-flows/${configId}`);
         if (!response.ok) {
-          throw new Error(`Failed to fetch configurations: ${response.status}`);
+          throw new Error(`Failed to fetch configuration: ${response.status}`);
         }
         
-        const configs = await response.json();
-        const config = configs.find(c => c.id === configId);
-        
-        if (!config) {
-          throw new Error(`Configuration with ID ${configId} not found`);
-        }
+        const config = await response.json();
         
         console.log("Found config:", config);
         
-        setConfigName(config.name);
+        setConfigName(config.name || config.id);
         
-        // Initialize directionData based on the API response
-        setDirectionData({
-          northbound: {
-            exit_north: Math.round(config.northVPH * 0.6),
-            exit_east: Math.round(config.northVPH * 0.2),
-            exit_west: Math.round(config.northVPH * 0.2)
-          },
-          southbound: {
-            exit_south: Math.round(config.southVPH * 0.6),
-            exit_east: Math.round(config.southVPH * 0.2),
-            exit_west: Math.round(config.southVPH * 0.2)
-          },
-          eastbound: {
-            exit_east: Math.round(config.eastVPH * 0.6),
-            exit_north: Math.round(config.eastVPH * 0.2),
-            exit_south: Math.round(config.eastVPH * 0.2)
-          },
-          westbound: {
-            exit_west: Math.round(config.westVPH * 0.6),
-            exit_north: Math.round(config.westVPH * 0.2),
-            exit_south: Math.round(config.westVPH * 0.2)
-          }
-        });
+        // Handle different possible data structures
+        if (config.flows) {
+          // New format with flows property
+          const newDirectionData = {};
+          
+          ['northbound', 'southbound', 'eastbound', 'westbound'].forEach(dir => {
+            if (config.flows[dir]) {
+              newDirectionData[dir] = config.flows[dir].exits || {};
+            } else {
+              newDirectionData[dir] = {};
+            }
+          });
+          
+          setDirectionData(newDirectionData);
+        } else {
+          // Legacy format - create exits based on total traffic
+          const directions = [
+            { key: 'northbound', total: config.northVPH || 0, exits: ['north', 'east', 'west'] },
+            { key: 'southbound', total: config.southVPH || 0, exits: ['south', 'east', 'west'] },
+            { key: 'eastbound', total: config.eastVPH || 0, exits: ['east', 'north', 'south'] },
+            { key: 'westbound', total: config.westVPH || 0, exits: ['west', 'north', 'south'] }
+          ];
+          
+          const newDirectionData = {};
+          
+          directions.forEach(({ key, total, exits }) => {
+            const exitData = {};
+            if (total > 0) {
+              const mainExitShare = Math.round(total * 0.6);
+              const otherExitShare = Math.round((total - mainExitShare) / 2);
+              
+              exitData[`exit_${exits[0]}`] = mainExitShare;
+              exitData[`exit_${exits[1]}`] = otherExitShare;
+              exitData[`exit_${exits[2]}`] = total - mainExitShare - otherExitShare; // Ensure they sum to total
+            }
+            newDirectionData[key] = exitData;
+          });
+          
+          setDirectionData(newDirectionData);
+        }
       } catch (err) {
         console.error("Error loading configuration:", err);
         setError(`Error loading configuration: ${err.message}`);
@@ -166,62 +178,38 @@ const EditTrafficConfig = ({ configId, onNavigate }) => {
     try {
       setSaving(true);
       
-      // Step 1: Delete the existing configuration
-      console.log("Deleting existing configuration:", configId);
-      const deleteResponse = await fetch(`http://localhost:5000/api/traffic-flows/${configId}`, {
-        method: 'DELETE'
+      // Prepare data according to new format
+      const newConfig = {
+        name: configName,
+        flows: {}
+      };
+      
+      // Calculate incoming flow and format exits for each direction
+      Object.entries(directionData).forEach(([direction, exits]) => {
+        const incoming_flow = Object.values(exits).reduce((sum, val) => sum + (parseInt(val) || 0), 0);
+        
+        newConfig.flows[direction] = {
+          incoming_flow: incoming_flow,
+          exits: exits
+        };
       });
       
-      if (!deleteResponse.ok) {
-        throw new Error(`Failed to delete existing configuration: ${deleteResponse.status}`);
-      }
+      console.log("Submitting updated configuration:", JSON.stringify(newConfig, null, 2));
       
-      // Step 2: Create a new configuration with the updated data
-      console.log("Creating new configuration with name:", configName);
-      
-      // Calculate totals for each direction
-      const calculateTotal = (exits) => {
-        return Object.values(exits).reduce((sum, val) => sum + (parseInt(val) || 0), 0);
-      };
-      
-      // IMPORTANT: Use 'incoming' field instead of 'total'
-      const createData = {
-        name: configName,
-        flows: {
-          northbound: {
-            incoming: calculateTotal(directionData.northbound),
-            exits: directionData.northbound
-          },
-          southbound: {
-            incoming: calculateTotal(directionData.southbound),
-            exits: directionData.southbound
-          },
-          eastbound: {
-            incoming: calculateTotal(directionData.eastbound),
-            exits: directionData.eastbound
-          },
-          westbound: {
-            incoming: calculateTotal(directionData.westbound),
-            exits: directionData.westbound
-          }
-        }
-      };
-      
-      console.log("Create data:", JSON.stringify(createData, null, 2));
-      
-      const createResponse = await fetch('http://localhost:5000/api/traffic-flows', {
-        method: 'POST',
+      // Send PUT request with the updated data
+      const response = await fetch(`http://localhost:5000/api/traffic-flows/${configId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(createData)
+        body: JSON.stringify(newConfig)
       });
       
-      const createResult = await createResponse.json();
-      console.log("Create result:", createResult);
+      const result = await response.json();
+      console.log("Update result:", result);
       
-      if (!createResponse.ok || !createResult.success) {
-        throw new Error(createResult.error || createResult.errors || `Create failed with status: ${createResponse.status}`);
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || result.errors || `Update failed with status: ${response.status}`);
       }
       
       console.log("Configuration successfully updated");
