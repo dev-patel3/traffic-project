@@ -20,10 +20,21 @@ const DirectionInputs = ({ direction, values, onChange }) => {
     onChange(newValues);
   };
 
+  const calculateTotal = () => {
+    return Object.entries(values)
+      .filter(([key]) => key.startsWith('exit_'))
+      .reduce((sum, [_, value]) => sum + (parseInt(value) || 0), 0);
+  };
+
   return (
     <Card className="p-6 shadow-sm bg-white border-gray-100">
       <div className="space-y-6">
-        <h2 className="text-lg font-medium">{direction} Traffic Flow</h2>
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-medium">{direction} Traffic Flow</h2>
+          <span className="text-sm font-medium bg-gray-100 px-3 py-1 rounded">
+            Total: {calculateTotal()} VPH
+          </span>
+        </div>
         <div className="space-y-4">
           {exits[direction].map(exit => (
             <div key={exit}>
@@ -63,23 +74,27 @@ const EditTrafficConfig = ({ configId, onNavigate }) => {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        console.log("Attempting to fetch config with ID:", configId); // Debug log
+        console.log("Fetching config with ID:", configId);
         setLoading(true);
         
-        // First fetch to get all configs
+        // Get all traffic flows
         const response = await fetch('http://localhost:5000/api/traffic-flows');
-        if (!response.ok) throw new Error('Failed to fetch configurations');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch configurations: ${response.status}`);
+        }
         
-        const allConfigs = await response.json();
-        console.log("All configs:", allConfigs); // Debug log
+        const configs = await response.json();
+        const config = configs.find(c => c.id === configId);
         
-        // Find the specific config we want
-        const config = allConfigs.find(config => config.id === configId);
-        if (!config) throw new Error('Configuration not found');
+        if (!config) {
+          throw new Error(`Configuration with ID ${configId} not found`);
+        }
         
-        console.log("Found config:", config); // Debug log
+        console.log("Found config:", config);
         
         setConfigName(config.name);
+        
+        // Initialize directionData based on the API response
         setDirectionData({
           northbound: {
             exit_north: Math.round(config.northVPH * 0.6),
@@ -103,13 +118,13 @@ const EditTrafficConfig = ({ configId, onNavigate }) => {
           }
         });
       } catch (err) {
-        console.error("Error details:", err); // Debug log
+        console.error("Error loading configuration:", err);
         setError(`Error loading configuration: ${err.message}`);
       } finally {
         setLoading(false);
       }
     };
-  
+    
     if (configId) {
       fetchConfig();
     }
@@ -141,51 +156,78 @@ const EditTrafficConfig = ({ configId, onNavigate }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const errors = validateForm();
-    if (errors.length > 0) {
-      setError(errors.join(', '));
+    
+    const formErrors = validateForm();
+    if (formErrors.length > 0) {
+      setError(formErrors.join(', '));
       return;
     }
   
     try {
       setSaving(true);
-  
-      const response = await fetch(`http://localhost:5000/api/traffic-flows/${configId}`, {
-        method: 'PUT',
+      
+      // Step 1: Delete the existing configuration
+      console.log("Deleting existing configuration:", configId);
+      const deleteResponse = await fetch(`http://localhost:5000/api/traffic-flows/${configId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!deleteResponse.ok) {
+        throw new Error(`Failed to delete existing configuration: ${deleteResponse.status}`);
+      }
+      
+      // Step 2: Create a new configuration with the updated data
+      console.log("Creating new configuration with name:", configName);
+      
+      // Calculate totals for each direction
+      const calculateTotal = (exits) => {
+        return Object.values(exits).reduce((sum, val) => sum + (parseInt(val) || 0), 0);
+      };
+      
+      // IMPORTANT: Use 'incoming' field instead of 'total'
+      const createData = {
+        name: configName,
+        flows: {
+          northbound: {
+            incoming: calculateTotal(directionData.northbound),
+            exits: directionData.northbound
+          },
+          southbound: {
+            incoming: calculateTotal(directionData.southbound),
+            exits: directionData.southbound
+          },
+          eastbound: {
+            incoming: calculateTotal(directionData.eastbound),
+            exits: directionData.eastbound
+          },
+          westbound: {
+            incoming: calculateTotal(directionData.westbound),
+            exits: directionData.westbound
+          }
+        }
+      };
+      
+      console.log("Create data:", JSON.stringify(createData, null, 2));
+      
+      const createResponse = await fetch('http://localhost:5000/api/traffic-flows', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: configName,
-          flows: {
-            northbound: {
-              exits: directionData.northbound
-            },
-            southbound: {
-              exits: directionData.southbound
-            },
-            eastbound: {
-              exits: directionData.eastbound
-            },
-            westbound: {
-              exits: directionData.westbound
-            }
-          }
-        })
+        body: JSON.stringify(createData)
       });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update configuration');
+      
+      const createResult = await createResponse.json();
+      console.log("Create result:", createResult);
+      
+      if (!createResponse.ok || !createResult.success) {
+        throw new Error(createResult.error || createResult.errors || `Create failed with status: ${createResponse.status}`);
       }
-  
-      const result = await response.json();
-      if (result.success) {
-        onNavigate('saved');
-      } else {
-        throw new Error(result.error || 'Failed to update configuration');
-      }
+      
+      console.log("Configuration successfully updated");
+      onNavigate('saved');
     } catch (err) {
+      console.error("Error updating configuration:", err);
       setError(`Error saving configuration: ${err.message}`);
     } finally {
       setSaving(false);

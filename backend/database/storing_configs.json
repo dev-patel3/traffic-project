@@ -22,28 +22,6 @@
             "exit_south": 20
          }
       },
-      "RushHourFloww": {
-         "northbound": {
-            "exit_east": 100,
-            "exit_north": 300,
-            "exit_west": 100
-         },
-         "southbound": {
-            "exit_east": 90,
-            "exit_south": 280,
-            "exit_west": 90
-         },
-         "eastbound": {
-            "exit_east": 250,
-            "exit_north": 75,
-            "exit_south": 75
-         },
-         "westbound": {
-            "exit_north": 65,
-            "exit_south": 65,
-            "exit_west": 220
-         }
-      },
       "HighTrafficFlows": {
          "northbound": {
             "exit_north": 183,
@@ -64,6 +42,43 @@
             "exit_west": 180,
             "exit_north": 60,
             "exit_south": 60
+         }
+      },
+      "RushHourFlowws": {
+         "name": "RushHourFlowws",
+         "flows": {
+            "northbound": {
+               "incoming_flow": 500,
+               "exits": {
+                  "exit_north": 300,
+                  "exit_east": 100,
+                  "exit_west": 100
+               }
+            },
+            "southbound": {
+               "incoming_flow": 460,
+               "exits": {
+                  "exit_south": 276,
+                  "exit_east": 92,
+                  "exit_west": 92
+               }
+            },
+            "eastbound": {
+               "incoming_flow": 400,
+               "exits": {
+                  "exit_east": 240,
+                  "exit_north": 80,
+                  "exit_south": 80
+               }
+            },
+            "westbound": {
+               "incoming_flow": 350,
+               "exits": {
+                  "exit_west": 210,
+                  "exit_north": 70,
+                  "exit_south": 70
+               }
+            }
          }
       }
    },
@@ -149,42 +164,6 @@
             "pedestrian_crossing_requests_per_hour": 30,
             "priority": 4,
             "traffic_priority": 1
-         }
-      },
-      "RushHourOptimized": {
-         "name": "RushHourOptimized",
-         "traffic_flow_config": "RushHourFloww",
-         "northbound": {
-            "enable_bus_cycle_lane": false,
-            "enable_left_turn_lane": true,
-            "num_lanes": 5,
-            "pedestrian_crossing_duration": 12,
-            "pedestrian_crossing_requests_per_hour": 20,
-            "traffic_priority": 3
-         },
-         "southbound": {
-            "enable_bus_cycle_lane": false,
-            "enable_left_turn_lane": true,
-            "num_lanes": 4,
-            "pedestrian_crossing_duration": 12,
-            "pedestrian_crossing_requests_per_hour": 20,
-            "traffic_priority": 3
-         },
-         "eastbound": {
-            "enable_bus_cycle_lane": false,
-            "enable_left_turn_lane": true,
-            "num_lanes": 4,
-            "pedestrian_crossing_duration": 12,
-            "pedestrian_crossing_requests_per_hour": 20,
-            "traffic_priority": 2
-         },
-         "westbound": {
-            "enable_bus_cycle_lane": false,
-            "enable_left_turn_lane": true,
-            "num_lanes": 3,
-            "pedestrian_crossing_duration": 12,
-            "pedestrian_crossing_requests_per_hour": 20,
-            "traffic_priority": 2
          }
       }
    }
