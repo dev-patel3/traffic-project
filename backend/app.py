@@ -1,26 +1,24 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import json
+
+from .models.traffic_flow import TrafficFlow as TrafficFlowModel
+from .models.junction_config import JunctionConfiguration as JunctionConfigModel
+from .models.traffic_flow_input import TrafficFlowInput
+from .models.junction_config_input import JunctionConfigurationInput
 
 from .storage import (
-    loading_traffic_flows,
-    saving_traffic_flows,
     getting_traffic_flow,
     deleting_traffic_flow,
     saving_traffic_flow,
     updating_traffic_flow,
-    loading_junctions_configurations,
-    saving_junction_configurations,
     getting_junction_configuration,
     deleting_junction_configuration,
     saving_junction_configuration,
     get_all_traffic_flows,
-    get_functions_for_traffic_flow
+    get_functions_for_traffic_flow,
+    migrate_json_to_db
 )
-
-from .models.traffic_flow import TrafficFlow
-from .models.junction_config import JunctionConfiguration
-from .models.traffic_flow_input import TrafficFlowInput
-from .models.junction_config_input import JunctionConfigurationInput
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -31,48 +29,50 @@ CORS(app, resources={
      }
 })
 
+# Migrate data from JSON to SQLite database on first run
+@app.before_first_request
+def initialize_db():
+    migrate_json_to_db()
+
+@app.route('/api/test', methods=['GET'])
+def test():
+    return jsonify({"message": "Backend API is running"})
+
 @app.route('/api/traffic-flows', methods=['GET'])
 def get_traffic_flows():
     """Gets all traffic flow configurations."""
     try:
-        data = loading_traffic_flows()
-        traffic_configurations = data.get("traffic_flow_configurations", {})
-        junction_configurations = data.get("junction_configurations", {})
-
+        # Get all traffic flows from the database
+        traffic_flows_data = get_all_traffic_flows()
+        
         # Transform the data for frontend
         traffic_flows = []
         
-        for name, flow in traffic_configurations.items():
-            # Handle both old and new formats
-            if isinstance(flow, dict) and "flows" in flow:
-                # New format
-                flows = flow["flows"]
-                northVPH = (flows.get("northbound", {}).get("incoming_flow", 0) or 
-                         sum(flows.get("northbound", {}).get("exits", {}).values(), 0))
-                southVPH = (flows.get("southbound", {}).get("incoming_flow", 0) or 
-                         sum(flows.get("southbound", {}).get("exits", {}).values(), 0))
-                eastVPH = (flows.get("eastbound", {}).get("incoming_flow", 0) or 
-                        sum(flows.get("eastbound", {}).get("exits", {}).values(), 0))
-                westVPH = (flows.get("westbound", {}).get("incoming_flow", 0) or 
-                        sum(flows.get("westbound", {}).get("exits", {}).values(), 0))
-            else:
-                # Old format
-                northVPH = sum(flow.get("northbound", {}).values(), 0)
-                southVPH = sum(flow.get("southbound", {}).values(), 0)
-                eastVPH = sum(flow.get("eastbound", {}).values(), 0)
-                westVPH = sum(flow.get("westbound", {}).values(), 0)
+        for flow in traffic_flows_data:
+            # New format handled by SQLAlchemy models
+            flows = flow.get("flows", {})
+            
+            # Calculate total flows
+            northVPH = (flows.get("northbound", {}).get("incoming_flow", 0) or 
+                       sum(flows.get("northbound", {}).get("exits", {}).values(), 0))
+            southVPH = (flows.get("southbound", {}).get("incoming_flow", 0) or 
+                       sum(flows.get("southbound", {}).get("exits", {}).values(), 0))
+            eastVPH = (flows.get("eastbound", {}).get("incoming_flow", 0) or 
+                      sum(flows.get("eastbound", {}).get("exits", {}).values(), 0))
+            westVPH = (flows.get("westbound", {}).get("incoming_flow", 0) or 
+                      sum(flows.get("westbound", {}).get("exits", {}).values(), 0))
+            
+            # Get junctions for this traffic flow
+            junctions = get_functions_for_traffic_flow(flow.get("id") or flow.get("name", ""))
             
             traffic_flows.append({
-                "id": name,
-                "name": flow.get("name", name),
+                "id": str(flow.get("id", "")),
+                "name": flow.get("name", ""),
                 "northVPH": northVPH,
                 "southVPH": southVPH,
                 "eastVPH": eastVPH,
                 "westVPH": westVPH,
-                "junctionCount": sum(
-                    1 for junction in junction_configurations.values()
-                    if junction.get("traffic_flow_config") == name
-                )
+                "junctionCount": len(junctions) if junctions else 0
             })
             
         return jsonify(traffic_flows)
@@ -90,38 +90,12 @@ def get_traffic_flow(flow_id):
         if not flow_config:
             return jsonify({"error": "Traffic flow not found"}), 404
             
-        # Transform the data for frontend, handling both old and new formats
-        if isinstance(flow_config, dict) and "flows" in flow_config:
-            # New format - keep as is
-            transformed_flow = {
-                "id": flow_id,
-                "name": flow_config.get("name", flow_id),
-                "flows": flow_config["flows"]
-            }
-        else:
-            # Old format - convert to new format
-            transformed_flow = {
-                "id": flow_id,
-                "name": flow_id,
-                "flows": {
-                    "northbound": {
-                        "incoming_flow": sum(flow_config.get("northbound", {}).values(), 0),
-                        "exits": flow_config.get("northbound", {})
-                    },
-                    "southbound": {
-                        "incoming_flow": sum(flow_config.get("southbound", {}).values(), 0),
-                        "exits": flow_config.get("southbound", {})
-                    },
-                    "eastbound": {
-                        "incoming_flow": sum(flow_config.get("eastbound", {}).values(), 0),
-                        "exits": flow_config.get("eastbound", {})
-                    },
-                    "westbound": {
-                        "incoming_flow": sum(flow_config.get("westbound", {}).values(), 0),
-                        "exits": flow_config.get("westbound", {})
-                    }
-                }
-            }
+        # Transform the data for frontend in new format
+        transformed_flow = {
+            "id": str(flow_config.get("id", "")),
+            "name": flow_config.get("name", ""),
+            "flows": flow_config.get("flows", {})
+        }
         
         return jsonify(transformed_flow)
         
@@ -134,23 +108,25 @@ def create_traffic_flow():
     """Creates a new traffic flow configuration."""
     try:
         new_config = request.get_json()
-        data = loading_traffic_flows()
-        existing_names = set(data["traffic_flow_configurations"].keys())
+        
+        # Get all traffic flows to check for name uniqueness
+        all_flows = get_all_traffic_flows()
+        existing_names = {flow.get("name") for flow in all_flows}
 
         # Extract flow rates from new format
         flow_rates = {}
         exit_distributions = {}
         
         for direction in ['northbound', 'southbound', 'eastbound', 'westbound']:
-            if direction in new_config["flows"]:
+            if direction in new_config.get("flows", {}):
                 direction_data = new_config["flows"][direction]
                 flow_rates[direction] = direction_data.get("incoming_flow", 0)
                 exit_distributions[direction] = direction_data.get("exits", {})
 
         # Creates and validates TrafficFlowInput
         traffic_flow_input = TrafficFlowInput(
-            name=new_config["name"],
-            flows=new_config["flows"],
+            name=new_config.get("name", ""),
+            flows=new_config.get("flows", {}),
             existing_traffic_config_names=existing_names
         )
 
@@ -161,8 +137,8 @@ def create_traffic_flow():
             }), 400
 
         # Constructing a TrafficFlow object after validation
-        traffic_flow = TrafficFlow(
-            name=new_config["name"],
+        traffic_flow = TrafficFlowModel(
+            name=new_config.get("name", ""),
             flow_rates=flow_rates,
             exit_distributions=exit_distributions
         )
@@ -200,9 +176,11 @@ def update_traffic_flow(flow_id):
         update_config = request.get_json()
         new_name = update_config.get("name", flow_id)
 
-        data = loading_traffic_flows()
+        # Get all traffic flows to check for name uniqueness
+        all_flows = get_all_traffic_flows()
+        existing_names = {flow.get("name") for flow in all_flows if str(flow.get("id")) != str(flow_id)}
 
-        if new_name != flow_id and new_name in data["traffic_flow_configurations"]:
+        if new_name in existing_names:
             return jsonify({
                 "success": False,
                 "error": f"Traffic flow configuration '{new_name}' already exists."
@@ -213,15 +191,15 @@ def update_traffic_flow(flow_id):
         exit_distributions = {}
         
         for direction in ['northbound', 'southbound', 'eastbound', 'westbound']:
-            if direction in update_config["flows"]:
+            if direction in update_config.get("flows", {}):
                 direction_data = update_config["flows"][direction]
                 flow_rates[direction] = direction_data.get("incoming_flow", 0)
                 exit_distributions[direction] = direction_data.get("exits", {})
         
         traffic_flow_input = TrafficFlowInput(
             name=new_name,
-            flows=update_config["flows"],
-            existing_traffic_config_names=set(data["traffic_flow_configurations"].keys()) - {flow_id}
+            flows=update_config.get("flows", {}),
+            existing_traffic_config_names=existing_names
         )
 
         if not traffic_flow_input.validate():
@@ -230,19 +208,14 @@ def update_traffic_flow(flow_id):
                 "errors": traffic_flow_input.errors
             }), 400
 
-        traffic_flow = TrafficFlow(
+        traffic_flow = TrafficFlowModel(
             name=new_name,
             flow_rates=flow_rates,
             exit_distributions=exit_distributions
         )
 
-        if new_name != flow_id:
-            # Update references to this traffic flow in junction configurations
-            for junction in data.get("junction_configurations", {}).values():
-                if junction.get("traffic_flow_config") == flow_id:
-                    junction["traffic_flow_config"] = new_name
-
-            # Delete the old traffic flow first
+        if new_name != existing_flow.get("name"):
+            # Need to handle name change by delete and recreate
             if not deleting_traffic_flow(flow_id):
                 return jsonify({
                     "success": False,
@@ -266,7 +239,7 @@ def update_traffic_flow(flow_id):
         return jsonify({
             "success": True,
             "message": "Traffic flow updated successfully",
-            "newId": new_name if new_name else flow_id
+            "newId": new_name
         })
         
     except Exception as e:
@@ -310,14 +283,24 @@ def get_junction_configurations(flow_id):
         for junction in junctions:
             directions = ["northbound", "southbound", "eastbound", "westbound"]
             
-            total_lanes = sum(junction.get(direction, {}).get("num_lanes", 0) for direction in directions)
-            has_left_turn = any(junction.get(direction, {}).get("enable_left_turn_lane", False) for direction in directions)
-            has_bus_cycle = any(junction.get(direction, {}).get("enable_bus_cycle_lane", False) for direction in directions)
+            # Extract lane counts and boolean options
+            total_lanes = 0
+            has_left_turn = False
+            has_bus_cycle = False
+            
+            for direction in directions:
+                if direction in junction:
+                    dir_data = junction[direction]
+                    total_lanes += dir_data.get("num_lanes", 0)
+                    has_left_turn = has_left_turn or dir_data.get("enable_left_turn_lane", False)
+                    has_bus_cycle = has_bus_cycle or dir_data.get("enable_bus_cycle_lane", False)
+            
+            average_lanes = total_lanes // len(directions) if directions else 0
             
             transformed_junctions.append({
-                "id": junction["name"],
-                "name": junction["name"],
-                "lanes": total_lanes // len(directions),
+                "id": str(junction.get("id", "")),
+                "name": junction.get("name", ""),
+                "lanes": average_lanes,
                 "hasLeftTurnLanes": has_left_turn,
                 "hasBusCycleLanes": has_bus_cycle,
                 "metrics": junction.get("metrics", {})
@@ -329,5 +312,207 @@ def get_junction_configurations(flow_id):
         print(f"Error in get_junction_configurations: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/junctions', methods=['POST'])
+def create_junction():
+    """Creates a new junction configuration."""
+    try:
+        junction_data = request.get_json()
+        
+        # Validate that the associated traffic flow exists
+        traffic_flow_name = junction_data.get("traffic_flow_config")
+        traffic_flow = getting_traffic_flow(traffic_flow_name)
+        
+        if not traffic_flow:
+            return jsonify({
+                "success": False,
+                "error": f"Traffic flow configuration '{traffic_flow_name}' not found"
+            }), 404
+        
+        # Create a JunctionConfiguration object
+        junction_config = JunctionConfigModel(
+            name=junction_data.get("name"),
+            lanes=junction_data.get("lanes", {}),
+            exit_lanes=junction_data.get("exit_lanes", {}),
+            has_left_turn_lane=junction_data.get("has_left_turn_lane", False),
+            left_turn_lane_position=junction_data.get("left_turn_lane_position", ""),
+            has_bus_cycle_lane=junction_data.get("has_bus_cycle_lane", False), 
+            bus_cycle_lane_type=junction_data.get("bus_cycle_lane_type", ""), 
+            bus_cycle_incoming_flow=junction_data.get("bus_cycle_incoming_flow", {}),  
+            bus_cycle_outgoing_flow=junction_data.get("bus_cycle_outgoing_flow", {}),
+            has_pedestrian_crossing=junction_data.get("has_pedestrian_crossing", False), 
+            pedestrian_crossing_duration=junction_data.get("pedestrian_crossing_duration", 0), 
+            pedestrian_requests_per_hour=junction_data.get("pedestrian_requests_per_hour", 0),
+            is_priority=junction_data.get("is_priority", False), 
+            traffic_light_priority=junction_data.get("traffic_light_priority", {}), 
+            traffic_flow_name=traffic_flow_name
+        )
+        
+        if not saving_junction_configuration(junction_config):
+            return jsonify({
+                "success": False,
+                "error": "Junction configuration could not be saved"
+            }), 400
+        
+        return jsonify({
+            "success": True,
+            "message": "Junction configuration created successfully"
+        })
+        
+    except Exception as e:
+        print(f"Error in create_junction: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/junctions/<junction_id>', methods=['GET'])
+def get_junction(junction_id):
+    """Gets a specific junction configuration."""
+    try:
+        junction = getting_junction_configuration(junction_id)
+        
+        if not junction:
+            return jsonify({"error": "Junction configuration not found"}), 404
+        
+        return jsonify(junction)
+        
+    except Exception as e:
+        print(f"Error in get_junction: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/junctions/<junction_id>', methods=['DELETE'])
+def delete_junction(junction_id):
+    """Deletes a junction configuration."""
+    try:
+        if not deleting_junction_configuration(junction_id):
+            return jsonify({
+                "success": False, 
+                "error": "Junction configuration not found or could not be deleted"
+            }), 404
+            
+        return jsonify({
+            "success": True,
+            "message": "Junction configuration deleted successfully"
+        })
+        
+    except Exception as e:
+        print(f"Error in delete_junction: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/junctions/<junction_id>/simulate', methods=['GET'])
+def simulate_junction(junction_id):
+    """Runs a simulation for a specific junction configuration."""
+    try:
+        junction = getting_junction_configuration(junction_id)
+        
+        if not junction:
+            return jsonify({"error": "Junction configuration not found"}), 404
+        
+        # In a real implementation, we would run the simulation
+        # For now, we'll return mock simulation results
+        
+        # Mock simulation results
+        simulation_results = {
+            "average_wait_times": {
+                "northbound": 15.2,
+                "southbound": 18.5,
+                "eastbound": 12.8,
+                "westbound": 14.3
+            },
+            "max_wait_times": {
+                "northbound": 38,
+                "southbound": 45,
+                "eastbound": 32,
+                "westbound": 36
+            },
+            "max_queue_lengths": {
+                "northbound": 8,
+                "southbound": 12,
+                "eastbound": 6,
+                "westbound": 7
+            },
+            "efficiency_score": 0.75,
+            "sustainability_score": 0.68
+        }
+        
+        return jsonify({
+            "success": True,
+            "junction_id": junction_id,
+            "junction_name": junction.get("name", ""),
+            "results": simulation_results
+        })
+        
+    except Exception as e:
+        print(f"Error in simulate_junction: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
+
+@app.route('/api/junctions/<junction_id>', methods=['PUT'])
+def update_junction(junction_id):
+    """Updates an existing junction configuration."""
+    try:
+        existing_junction = getting_junction_configuration(junction_id)
+        
+        if not existing_junction:
+            return jsonify({
+                "success": False,
+                "error": "Junction configuration not found"
+            }), 404
+            
+        junction_data = request.get_json()
+        
+        # Validate that the associated traffic flow exists
+        traffic_flow_name = junction_data.get("traffic_flow_config")
+        traffic_flow = getting_traffic_flow(traffic_flow_name)
+        
+        if not traffic_flow:
+            return jsonify({
+                "success": False,
+                "error": f"Traffic flow configuration '{traffic_flow_name}' not found"
+            }), 404
+        
+        # Delete the old junction configuration
+        if not deleting_junction_configuration(junction_id):
+            return jsonify({
+                "success": False,
+                "error": "Failed to delete existing junction configuration"
+            }), 500
+        
+        # Create a new junction configuration with the updated data
+        junction_config = JunctionConfigModel(
+            name=junction_data.get("name"),
+            lanes=junction_data.get("lanes", {}),
+            exit_lanes=junction_data.get("exit_lanes", {}),
+            has_left_turn_lane=junction_data.get("has_left_turn_lane", False),
+            left_turn_lane_position=junction_data.get("left_turn_lane_position", ""),
+            has_bus_cycle_lane=junction_data.get("has_bus_cycle_lane", False), 
+            bus_cycle_lane_type=junction_data.get("bus_cycle_lane_type", ""), 
+            bus_cycle_incoming_flow=junction_data.get("bus_cycle_incoming_flow", {}),  
+            bus_cycle_outgoing_flow=junction_data.get("bus_cycle_outgoing_flow", {}),
+            has_pedestrian_crossing=junction_data.get("has_pedestrian_crossing", False), 
+            pedestrian_crossing_duration=junction_data.get("pedestrian_crossing_duration", 0), 
+            pedestrian_requests_per_hour=junction_data.get("pedestrian_requests_per_hour", 0),
+            is_priority=junction_data.get("is_priority", False), 
+            traffic_light_priority=junction_data.get("traffic_light_priority", {}), 
+            traffic_flow_name=traffic_flow_name
+        )
+        
+        if not saving_junction_configuration(junction_config):
+            return jsonify({
+                "success": False,
+                "error": "Junction configuration could not be saved"
+            }), 400
+        
+        return jsonify({
+            "success": True,
+            "message": "Junction configuration updated successfully"
+        })
+        
+    except Exception as e:
+        print(f"Error in update_junction: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500

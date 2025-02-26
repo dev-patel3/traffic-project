@@ -7,8 +7,8 @@ class TrafficFlow:
 
     def to_dict(self) -> dict:
         '''
-        Converting the TrafficFlow object into a dictionary for JSON storage.
-        Updated to match the new format.
+        Converting the TrafficFlow object into a dictionary for database storage.
+        Updated to match the new format with a 'flows' key.
         '''
         flows = {}
         
