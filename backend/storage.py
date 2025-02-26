@@ -10,7 +10,7 @@ engine = init_db()
 
 def get_traffic_flow_by_name_or_id(session, identifier):
     """Helper function to get a traffic flow by name or ID"""
-    if isinstance(identifier, int) or identifier.isdigit():
+    if isinstance(identifier, int) or (isinstance(identifier, str) and identifier.isdigit()):
         # If ID is provided as an integer or digit string
         return session.query(TrafficFlow).filter(TrafficFlow.id == int(identifier)).first()
     else:
@@ -19,7 +19,7 @@ def get_traffic_flow_by_name_or_id(session, identifier):
 
 def get_junction_by_name_or_id(session, identifier):
     """Helper function to get a junction by name or ID"""
-    if isinstance(identifier, int) or identifier.isdigit():
+    if isinstance(identifier, int) or (isinstance(identifier, str) and identifier.isdigit()):
         # If ID is provided as an integer or digit string
         return session.query(JunctionConfiguration).filter(JunctionConfiguration.id == int(identifier)).first()
     else:
@@ -97,8 +97,60 @@ def migrate_json_to_db():
 
 # Main storage functions
 
+def loading_traffic_flows():
+    """Get all traffic flow configurations"""
+    # First try SQLAlchemy storage
+    try:
+        session = get_session(engine)
+        flows = session.query(TrafficFlow).all()
+        
+        result = {
+            "traffic_flow_configurations": {},
+            "junction_configurations": {}
+        }
+        
+        for flow in flows:
+            flow_dict = flow.to_dict()
+            result["traffic_flow_configurations"][flow.name] = flow_dict
+        
+        # Add junction configurations too
+        junctions = session.query(JunctionConfiguration).all()
+        for junction in junctions:
+            junction_dict = junction.to_dict()
+            result["junction_configurations"][junction.name] = junction_dict
+        
+        session.close()
+        return result
+    
+    except Exception as e:
+        print(f"Error using SQLAlchemy storage, falling back to JSON: {e}")
+        
+        # Fallback to JSON storage
+        JSON_FILE_PATH = "backend/database/storing_configs.json"
+        if not os.path.exists(JSON_FILE_PATH):
+            return {"traffic_flow_configurations": {}, "junction_configurations": {}}
+            
+        try:
+            with open(JSON_FILE_PATH, "r") as file:
+                return json.load(file)
+        except Exception as json_e:
+            print(f"Error loading JSON file: {json_e}")
+            return {"traffic_flow_configurations": {}, "junction_configurations": {}}
+
+def saving_traffic_flows(data):
+    """Legacy function to save the entire JSON structure"""
+    # This is mainly for backward compatibility
+    try:
+        JSON_FILE_PATH = "backend/database/storing_configs.json"
+        with open(JSON_FILE_PATH, "w") as file:
+            json.dump(data, file, indent=3)
+        return True
+    except Exception as e:
+        print(f"Error saving traffic flows to JSON: {e}")
+        return False
+
 def get_all_traffic_flows():
-    """Get all traffic flow configurations from the database"""
+    """Get all traffic flow configurations as a list"""
     session = get_session(engine)
     try:
         flows = session.query(TrafficFlow).all()
@@ -124,7 +176,7 @@ def getting_traffic_flow(flow_id):
         session.close()
 
 def saving_traffic_flow(flow_obj):
-    """Save a new traffic flow to the database"""
+    """Save a new traffic flow"""
     session = get_session(engine)
     try:
         # Check if a flow with this name already exists
@@ -151,7 +203,7 @@ def saving_traffic_flow(flow_obj):
         session.close()
 
 def updating_traffic_flow(flow_obj):
-    """Update an existing traffic flow in the database"""
+    """Update an existing traffic flow"""
     session = get_session(engine)
     try:
         existing = session.query(TrafficFlow).filter(TrafficFlow.name == flow_obj.name).first()
@@ -193,14 +245,17 @@ def deleting_traffic_flow(flow_id):
         session.close()
 
 def loading_junctions_configurations():
-    """Get all junction configurations from the database"""
+    """Get all junction configurations"""
     session = get_session(engine)
     try:
         junctions = session.query(JunctionConfiguration).all()
-        return [junction.to_dict() for junction in junctions]
+        result = {}
+        for junction in junctions:
+            result[junction.name] = junction.to_dict()
+        return result
     except SQLAlchemyError as e:
         print(f"Database error getting all junction configurations: {e}")
-        return []
+        return {}
     finally:
         session.close()
 
@@ -219,7 +274,7 @@ def getting_junction_configuration(junction_id):
         session.close()
 
 def saving_junction_configuration(junction_obj):
-    """Save a new junction configuration to the database"""
+    """Save a new junction configuration"""
     session = get_session(engine)
     try:
         # Check if a junction with this name already exists
@@ -312,7 +367,3 @@ def get_functions_for_traffic_flow(flow_id):
         return None
     finally:
         session.close()
-
-# Export the same functions as the original storage module to maintain compatibility
-loading_traffic_flows = get_all_traffic_flows
-saving_traffic_flows = lambda data: True  # No direct equivalent, handled by individual save functions

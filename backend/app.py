@@ -20,6 +20,7 @@ from .storage import (
     migrate_json_to_db
 )
 
+# Initialize the Flask app
 app = Flask(__name__)
 CORS(app, resources={
      r"/api/*": {
@@ -29,11 +30,12 @@ CORS(app, resources={
      }
 })
 
-# Migrate data from JSON to SQLite database on first run
+# Initialize database on first run
 @app.before_first_request
 def initialize_db():
     migrate_json_to_db()
 
+# Add test endpoint
 @app.route('/api/test', methods=['GET'])
 def test():
     return jsonify({"message": "Backend API is running"})
@@ -42,25 +44,23 @@ def test():
 def get_traffic_flows():
     """Gets all traffic flow configurations."""
     try:
-        # Get all traffic flows from the database
         traffic_flows_data = get_all_traffic_flows()
         
         # Transform the data for frontend
         traffic_flows = []
         
         for flow in traffic_flows_data:
-            # New format handled by SQLAlchemy models
             flows = flow.get("flows", {})
             
-            # Calculate total flows
+            # Calculate total flows for each direction
             northVPH = (flows.get("northbound", {}).get("incoming_flow", 0) or 
-                       sum(flows.get("northbound", {}).get("exits", {}).values(), 0))
+                     sum(flows.get("northbound", {}).get("exits", {}).values(), 0))
             southVPH = (flows.get("southbound", {}).get("incoming_flow", 0) or 
-                       sum(flows.get("southbound", {}).get("exits", {}).values(), 0))
+                     sum(flows.get("southbound", {}).get("exits", {}).values(), 0))
             eastVPH = (flows.get("eastbound", {}).get("incoming_flow", 0) or 
-                      sum(flows.get("eastbound", {}).get("exits", {}).values(), 0))
+                    sum(flows.get("eastbound", {}).get("exits", {}).values(), 0))
             westVPH = (flows.get("westbound", {}).get("incoming_flow", 0) or 
-                      sum(flows.get("westbound", {}).get("exits", {}).values(), 0))
+                    sum(flows.get("westbound", {}).get("exits", {}).values(), 0))
             
             # Get junctions for this traffic flow
             junctions = get_functions_for_traffic_flow(flow.get("id") or flow.get("name", ""))
@@ -270,135 +270,6 @@ def delete_traffic_flow(flow_id):
         print(f"Error in delete_traffic_flow: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route('/api/traffic-flows/<flow_id>/junctions', methods=['GET'])
-def get_junction_configurations(flow_id):
-    """Gets junction configurations for a specific traffic flow."""
-    try:
-        junctions = get_functions_for_traffic_flow(flow_id)
-        
-        if junctions is None:
-            return jsonify({"error": "Traffic flow not found"}), 404
-            
-        transformed_junctions = []
-        for junction in junctions:
-            directions = ["northbound", "southbound", "eastbound", "westbound"]
-            
-            # Extract lane counts and boolean options
-            total_lanes = 0
-            has_left_turn = False
-            has_bus_cycle = False
-            
-            for direction in directions:
-                if direction in junction:
-                    dir_data = junction[direction]
-                    total_lanes += dir_data.get("num_lanes", 0)
-                    has_left_turn = has_left_turn or dir_data.get("enable_left_turn_lane", False)
-                    has_bus_cycle = has_bus_cycle or dir_data.get("enable_bus_cycle_lane", False)
-            
-            average_lanes = total_lanes // len(directions) if directions else 0
-            
-            transformed_junctions.append({
-                "id": str(junction.get("id", "")),
-                "name": junction.get("name", ""),
-                "lanes": average_lanes,
-                "hasLeftTurnLanes": has_left_turn,
-                "hasBusCycleLanes": has_bus_cycle,
-                "metrics": junction.get("metrics", {})
-            })
-        
-        return jsonify(transformed_junctions)
-        
-    except Exception as e:
-        print(f"Error in get_junction_configurations: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/junctions', methods=['POST'])
-def create_junction():
-    """Creates a new junction configuration."""
-    try:
-        junction_data = request.get_json()
-        
-        # Validate that the associated traffic flow exists
-        traffic_flow_name = junction_data.get("traffic_flow_config")
-        traffic_flow = getting_traffic_flow(traffic_flow_name)
-        
-        if not traffic_flow:
-            return jsonify({
-                "success": False,
-                "error": f"Traffic flow configuration '{traffic_flow_name}' not found"
-            }), 404
-        
-        # Create a JunctionConfiguration object
-        junction_config = JunctionConfigModel(
-            name=junction_data.get("name"),
-            lanes=junction_data.get("lanes", {}),
-            exit_lanes=junction_data.get("exit_lanes", {}),
-            has_left_turn_lane=junction_data.get("has_left_turn_lane", False),
-            left_turn_lane_position=junction_data.get("left_turn_lane_position", ""),
-            has_bus_cycle_lane=junction_data.get("has_bus_cycle_lane", False), 
-            bus_cycle_lane_type=junction_data.get("bus_cycle_lane_type", ""), 
-            bus_cycle_incoming_flow=junction_data.get("bus_cycle_incoming_flow", {}),  
-            bus_cycle_outgoing_flow=junction_data.get("bus_cycle_outgoing_flow", {}),
-            has_pedestrian_crossing=junction_data.get("has_pedestrian_crossing", False), 
-            pedestrian_crossing_duration=junction_data.get("pedestrian_crossing_duration", 0), 
-            pedestrian_requests_per_hour=junction_data.get("pedestrian_requests_per_hour", 0),
-            is_priority=junction_data.get("is_priority", False), 
-            traffic_light_priority=junction_data.get("traffic_light_priority", {}), 
-            traffic_flow_name=traffic_flow_name
-        )
-        
-        if not saving_junction_configuration(junction_config):
-            return jsonify({
-                "success": False,
-                "error": "Junction configuration could not be saved"
-            }), 400
-        
-        return jsonify({
-            "success": True,
-            "message": "Junction configuration created successfully"
-        })
-        
-    except Exception as e:
-        print(f"Error in create_junction: {str(e)}")
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-@app.route('/api/junctions/<junction_id>', methods=['GET'])
-def get_junction(junction_id):
-    """Gets a specific junction configuration."""
-    try:
-        junction = getting_junction_configuration(junction_id)
-        
-        if not junction:
-            return jsonify({"error": "Junction configuration not found"}), 404
-        
-        return jsonify(junction)
-        
-    except Exception as e:
-        print(f"Error in get_junction: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/junctions/<junction_id>', methods=['DELETE'])
-def delete_junction(junction_id):
-    """Deletes a junction configuration."""
-    try:
-        if not deleting_junction_configuration(junction_id):
-            return jsonify({
-                "success": False, 
-                "error": "Junction configuration not found or could not be deleted"
-            }), 404
-            
-        return jsonify({
-            "success": True,
-            "message": "Junction configuration deleted successfully"
-        })
-        
-    except Exception as e:
-        print(f"Error in delete_junction: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
 @app.route('/api/junctions/<junction_id>/simulate', methods=['GET'])
 def simulate_junction(junction_id):
     """Runs a simulation for a specific junction configuration."""
@@ -446,8 +317,132 @@ def simulate_junction(junction_id):
         print(f"Error in simulate_junction: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True)
+@app.route('/api/junctions/<junction_id>', methods=['GET'])
+def get_junction(junction_id):
+    """Gets a specific junction configuration."""
+    try:
+        junction = getting_junction_configuration(junction_id)
+        
+        if not junction:
+            return jsonify({"error": "Junction configuration not found"}), 404
+        
+        return jsonify(junction)
+        
+    except Exception as e:
+        print(f"Error in get_junction: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/junctions', methods=['POST'])
+def create_junction():
+    """Creates a new junction configuration."""
+    try:
+        junction_data = request.get_json()
+        
+        # Validate that the associated traffic flow exists
+        traffic_flow_id = junction_data.get("traffic_flow_config")
+        traffic_flow = getting_traffic_flow(traffic_flow_id)
+        
+        if not traffic_flow:
+            return jsonify({
+                "success": False,
+                "error": f"Traffic flow configuration '{traffic_flow_id}' not found"
+            }), 404
+        
+        traffic_flow_name = traffic_flow.get("name")
+        
+        # Extract direction-specific data
+        northbound_data = junction_data.get("northbound", {})
+        southbound_data = junction_data.get("southbound", {})
+        eastbound_data = junction_data.get("eastbound", {})
+        westbound_data = junction_data.get("westbound", {})
+        
+        # Create a JunctionConfiguration object
+        junction_config = JunctionConfigModel(
+            name=junction_data.get("name"),
+            lanes={
+                "northbound": northbound_data.get("num_lanes", 1),
+                "southbound": southbound_data.get("num_lanes", 1),
+                "eastbound": eastbound_data.get("num_lanes", 1),
+                "westbound": westbound_data.get("num_lanes", 1)
+            },
+            exit_lanes={},  # Not used in the frontend
+            has_left_turn_lane=any([
+                northbound_data.get("enable_left_turn_lane", False),
+                southbound_data.get("enable_left_turn_lane", False),
+                eastbound_data.get("enable_left_turn_lane", False),
+                westbound_data.get("enable_left_turn_lane", False)
+            ]),
+            left_turn_lane_position="",  # Not used in the frontend
+            has_bus_cycle_lane=any([
+                northbound_data.get("enable_bus_cycle_lane", False),
+                southbound_data.get("enable_bus_cycle_lane", False),
+                eastbound_data.get("enable_bus_cycle_lane", False),
+                westbound_data.get("enable_bus_cycle_lane", False)
+            ]),
+            bus_cycle_lane_type=next(
+                (data.get("bus_cycle_lane_type", "") 
+                for data in [northbound_data, southbound_data, eastbound_data, westbound_data] 
+                if data.get("enable_bus_cycle_lane", False)
+                ), ""),
+            bus_cycle_incoming_flow={
+                "northbound": northbound_data.get("flow_rate", 0) if northbound_data.get("enable_bus_cycle_lane", False) else 0,
+                "southbound": southbound_data.get("flow_rate", 0) if southbound_data.get("enable_bus_cycle_lane", False) else 0,
+                "eastbound": eastbound_data.get("flow_rate", 0) if eastbound_data.get("enable_bus_cycle_lane", False) else 0,
+                "westbound": westbound_data.get("flow_rate", 0) if westbound_data.get("enable_bus_cycle_lane", False) else 0
+            },
+            bus_cycle_outgoing_flow={},  # Not used in the frontend
+            has_pedestrian_crossing=any([
+                northbound_data.get("pedestrian_crossing_enabled", False),
+                southbound_data.get("pedestrian_crossing_enabled", False),
+                eastbound_data.get("pedestrian_crossing_enabled", False),
+                westbound_data.get("pedestrian_crossing_enabled", False)
+            ]),
+            pedestrian_crossing_duration=max(
+                northbound_data.get("pedestrian_crossing_duration", 0) if northbound_data.get("pedestrian_crossing_enabled", False) else 0,
+                southbound_data.get("pedestrian_crossing_duration", 0) if southbound_data.get("pedestrian_crossing_enabled", False) else 0,
+                eastbound_data.get("pedestrian_crossing_duration", 0) if eastbound_data.get("pedestrian_crossing_enabled", False) else 0,
+                westbound_data.get("pedestrian_crossing_duration", 0) if westbound_data.get("pedestrian_crossing_enabled", False) else 0
+            ),
+            pedestrian_requests_per_hour=sum([
+                northbound_data.get("pedestrian_crossing_requests_per_hour", 0) if northbound_data.get("pedestrian_crossing_enabled", False) else 0,
+                southbound_data.get("pedestrian_crossing_requests_per_hour", 0) if southbound_data.get("pedestrian_crossing_enabled", False) else 0,
+                eastbound_data.get("pedestrian_crossing_requests_per_hour", 0) if eastbound_data.get("pedestrian_crossing_enabled", False) else 0,
+                westbound_data.get("pedestrian_crossing_requests_per_hour", 0) if westbound_data.get("pedestrian_crossing_enabled", False) else 0
+            ]),
+            is_priority=any([
+                northbound_data.get("traffic_priority", 0) > 0,
+                southbound_data.get("traffic_priority", 0) > 0,
+                eastbound_data.get("traffic_priority", 0) > 0,
+                westbound_data.get("traffic_priority", 0) > 0
+            ]),
+            traffic_light_priority={
+                "northbound": northbound_data.get("traffic_priority", 0),
+                "southbound": southbound_data.get("traffic_priority", 0),
+                "eastbound": eastbound_data.get("traffic_priority", 0),
+                "westbound": westbound_data.get("traffic_priority", 0),
+                "pedestrian": 0  # Default value
+            },
+            traffic_flow_name=traffic_flow_name
+        )
+        
+        # Save the junction configuration
+        if not saving_junction_configuration(junction_config):
+            return jsonify({
+                "success": False,
+                "error": "Junction configuration could not be saved"
+            }), 400
+        
+        return jsonify({
+            "success": True,
+            "message": "Junction configuration created successfully"
+        })
+        
+    except Exception as e:
+        print(f"Error in create_junction: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 @app.route('/api/junctions/<junction_id>', methods=['PUT'])
 def update_junction(junction_id):
@@ -473,6 +468,12 @@ def update_junction(junction_id):
                 "error": f"Traffic flow configuration '{traffic_flow_name}' not found"
             }), 404
         
+        # Extract direction-specific data
+        northbound_data = junction_data.get("northbound", {})
+        southbound_data = junction_data.get("southbound", {})
+        eastbound_data = junction_data.get("eastbound", {})
+        westbound_data = junction_data.get("westbound", {})
+        
         # Delete the old junction configuration
         if not deleting_junction_configuration(junction_id):
             return jsonify({
@@ -483,22 +484,73 @@ def update_junction(junction_id):
         # Create a new junction configuration with the updated data
         junction_config = JunctionConfigModel(
             name=junction_data.get("name"),
-            lanes=junction_data.get("lanes", {}),
-            exit_lanes=junction_data.get("exit_lanes", {}),
-            has_left_turn_lane=junction_data.get("has_left_turn_lane", False),
-            left_turn_lane_position=junction_data.get("left_turn_lane_position", ""),
-            has_bus_cycle_lane=junction_data.get("has_bus_cycle_lane", False), 
-            bus_cycle_lane_type=junction_data.get("bus_cycle_lane_type", ""), 
-            bus_cycle_incoming_flow=junction_data.get("bus_cycle_incoming_flow", {}),  
-            bus_cycle_outgoing_flow=junction_data.get("bus_cycle_outgoing_flow", {}),
-            has_pedestrian_crossing=junction_data.get("has_pedestrian_crossing", False), 
-            pedestrian_crossing_duration=junction_data.get("pedestrian_crossing_duration", 0), 
-            pedestrian_requests_per_hour=junction_data.get("pedestrian_requests_per_hour", 0),
-            is_priority=junction_data.get("is_priority", False), 
-            traffic_light_priority=junction_data.get("traffic_light_priority", {}), 
+            lanes={
+                "northbound": northbound_data.get("num_lanes", 1),
+                "southbound": southbound_data.get("num_lanes", 1),
+                "eastbound": eastbound_data.get("num_lanes", 1),
+                "westbound": westbound_data.get("num_lanes", 1)
+            },
+            exit_lanes={},  # Not used in the frontend
+            has_left_turn_lane=any([
+                northbound_data.get("enable_left_turn_lane", False),
+                southbound_data.get("enable_left_turn_lane", False),
+                eastbound_data.get("enable_left_turn_lane", False),
+                westbound_data.get("enable_left_turn_lane", False)
+            ]),
+            left_turn_lane_position="",  # Not used in the frontend
+            has_bus_cycle_lane=any([
+                northbound_data.get("enable_bus_cycle_lane", False),
+                southbound_data.get("enable_bus_cycle_lane", False),
+                eastbound_data.get("enable_bus_cycle_lane", False),
+                westbound_data.get("enable_bus_cycle_lane", False)
+            ]),
+            bus_cycle_lane_type=next(
+                (data.get("bus_cycle_lane_type", "") 
+                for data in [northbound_data, southbound_data, eastbound_data, westbound_data] 
+                if data.get("enable_bus_cycle_lane", False)
+                ), ""),
+            bus_cycle_incoming_flow={
+                "northbound": northbound_data.get("flow_rate", 0) if northbound_data.get("enable_bus_cycle_lane", False) else 0,
+                "southbound": southbound_data.get("flow_rate", 0) if southbound_data.get("enable_bus_cycle_lane", False) else 0,
+                "eastbound": eastbound_data.get("flow_rate", 0) if eastbound_data.get("enable_bus_cycle_lane", False) else 0,
+                "westbound": westbound_data.get("flow_rate", 0) if westbound_data.get("enable_bus_cycle_lane", False) else 0
+            },
+            bus_cycle_outgoing_flow={},  # Not used in the frontend
+            has_pedestrian_crossing=any([
+                northbound_data.get("pedestrian_crossing_enabled", False),
+                southbound_data.get("pedestrian_crossing_enabled", False),
+                eastbound_data.get("pedestrian_crossing_enabled", False),
+                westbound_data.get("pedestrian_crossing_enabled", False)
+            ]),
+            pedestrian_crossing_duration=max(
+                northbound_data.get("pedestrian_crossing_duration", 0) if northbound_data.get("pedestrian_crossing_enabled", False) else 0,
+                southbound_data.get("pedestrian_crossing_duration", 0) if southbound_data.get("pedestrian_crossing_enabled", False) else 0,
+                eastbound_data.get("pedestrian_crossing_duration", 0) if eastbound_data.get("pedestrian_crossing_enabled", False) else 0,
+                westbound_data.get("pedestrian_crossing_duration", 0) if westbound_data.get("pedestrian_crossing_enabled", False) else 0
+            ),
+            pedestrian_requests_per_hour=sum([
+                northbound_data.get("pedestrian_crossing_requests_per_hour", 0) if northbound_data.get("pedestrian_crossing_enabled", False) else 0,
+                southbound_data.get("pedestrian_crossing_requests_per_hour", 0) if southbound_data.get("pedestrian_crossing_enabled", False) else 0,
+                eastbound_data.get("pedestrian_crossing_requests_per_hour", 0) if eastbound_data.get("pedestrian_crossing_enabled", False) else 0,
+                westbound_data.get("pedestrian_crossing_requests_per_hour", 0) if westbound_data.get("pedestrian_crossing_enabled", False) else 0
+            ]),
+            is_priority=any([
+                northbound_data.get("traffic_priority", 0) > 0,
+                southbound_data.get("traffic_priority", 0) > 0,
+                eastbound_data.get("traffic_priority", 0) > 0,
+                westbound_data.get("traffic_priority", 0) > 0
+            ]),
+            traffic_light_priority={
+                "northbound": northbound_data.get("traffic_priority", 0),
+                "southbound": southbound_data.get("traffic_priority", 0),
+                "eastbound": eastbound_data.get("traffic_priority", 0),
+                "westbound": westbound_data.get("traffic_priority", 0),
+                "pedestrian": 0  # Default value
+            },
             traffic_flow_name=traffic_flow_name
         )
         
+        # Save the junction configuration
         if not saving_junction_configuration(junction_config):
             return jsonify({
                 "success": False,
@@ -516,3 +568,69 @@ def update_junction(junction_id):
             "success": False,
             "error": str(e)
         }), 500
+
+@app.route('/api/junctions/<junction_id>', methods=['DELETE'])
+def delete_junction(junction_id):
+    """Deletes a junction configuration."""
+    try:
+        if not deleting_junction_configuration(junction_id):
+            return jsonify({
+                "success": False, 
+                "error": "Junction configuration not found or could not be deleted"
+            }), 404
+            
+        return jsonify({
+            "success": True,
+            "message": "Junction configuration deleted successfully"
+        })
+        
+    except Exception as e:
+        print(f"Error in delete_junction: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/traffic-flows/<flow_id>/junctions', methods=['GET'])
+def get_junction_configurations(flow_id):
+    """Gets junction configurations for a specific traffic flow."""
+    try:
+        junctions = get_functions_for_traffic_flow(flow_id)
+        
+        if junctions is None:
+            return jsonify({"error": "Traffic flow not found"}), 404
+            
+        transformed_junctions = []
+        for junction in junctions:
+            directions = ["northbound", "southbound", "eastbound", "westbound"]
+            
+            # Extract lane counts and boolean options
+            total_lanes = 0
+            has_left_turn = False
+            has_bus_cycle = False
+            
+            for direction in directions:
+                if direction in junction:
+                    dir_data = junction[direction]
+                    total_lanes += dir_data.get("num_lanes", 0)
+                    has_left_turn = has_left_turn or dir_data.get("enable_left_turn_lane", False)
+                    has_bus_cycle = has_bus_cycle or dir_data.get("enable_bus_cycle_lane", False)
+            
+            average_lanes = total_lanes // len(directions) if directions else 0
+            
+            transformed_junctions.append({
+                "id": str(junction.get("id", "")),
+                "name": junction.get("name", ""),
+                "lanes": average_lanes,
+                "hasLeftTurnLanes": has_left_turn,
+                "hasBusCycleLanes": has_bus_cycle,
+                "metrics": junction.get("metrics", {})
+            })
+        
+        return jsonify(transformed_junctions)
+        
+    except Exception as e:
+        print(f"Error in get_junction_configurations: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# Add any missing API routes from your original application here
+
+if __name__ == '__main__':
+    app.run(debug=True)

@@ -22,8 +22,10 @@ const SavedJunctionsPage = ({ onNavigate, configId, configName }) => {
           throw new Error('Failed to fetch junctions');
         }
         const data = await response.json();
+        console.log("Fetched junctions:", data);
         setJunctions(data);
       } catch (err) {
+        console.error("Error fetching junctions:", err);
         setError('Failed to load junctions: ' + err.message);
       } finally {
         setLoading(false);
@@ -44,14 +46,21 @@ const SavedJunctionsPage = ({ onNavigate, configId, configName }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete junction');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete junction');
       }
       
-      // Update local state instead of reloading
-      setJunctions(prevJunctions => 
-        prevJunctions.filter(junction => junction.id !== junctionId)
-      );
+      const result = await response.json();
+      if (result.success) {
+        // Update local state instead of reloading
+        setJunctions(prevJunctions => 
+          prevJunctions.filter(junction => junction.id !== junctionId)
+        );
+      } else {
+        throw new Error(result.error || 'Failed to delete junction');
+      }
     } catch (err) {
+      console.error("Delete error:", err);
       setError('Failed to delete junction: ' + err.message);
     } finally {
       setDeleteInProgress(null);

@@ -7,138 +7,138 @@ import { Save, PlayCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
 import ConfigInfo from './ConfigInfo';
 
-// In the DirectionForm component within EditJunctionDesign.jsx
+// DirectionForm component with proper field names matching backend
 const DirectionForm = ({ direction, values, onChange }) => {
-    return (
-      <Card className="p-6 shadow-sm bg-white border-gray-100">
-        <div className="space-y-6">
-          <h2 className="text-lg font-medium">{direction} Road</h2>
-  
-          {/* Number of Lanes */}
-          <div className="space-y-2">
-            <Label htmlFor={`${direction}-lanes`}>Number of Lanes</Label>
-            <Input 
-              id={`${direction}-lanes`}
-              type="number"
-              value={values.num_lanes || 1}  // Changed from lanes to num_lanes
-              onChange={(e) => onChange(direction, 'num_lanes', parseInt(e.target.value))}
-              min={1}
-              max={5}
-              placeholder="Maximum number of lanes is 5"
-              className="max-w-2xl"
-            />
-          </div>
-  
-          {/* Left Turn Lane */}
-          <div className="flex items-center justify-between max-w-2xl">
-            <Label htmlFor={`${direction}-leftTurn`}>Enable Left Turn Lane</Label>
-            <Switch 
-              id={`${direction}-leftTurn`}
-              checked={values.enable_left_turn_lane || false}  // Changed from hasLeftTurn
-              onCheckedChange={(checked) => onChange(direction, 'enable_left_turn_lane', checked)}
-            />
-          </div>
-  
-          {/* Bus/Bicycle Lane */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between max-w-2xl">
-              <Label htmlFor={`${direction}-busCycle`}>Enable Bus/Bicycle Lane</Label>
-              <Switch 
-                id={`${direction}-busCycle`}
-                checked={values.enable_bus_cycle_lane || false}  // Changed from hasBusCycle
-                onCheckedChange={(checked) => onChange(direction, 'enable_bus_cycle_lane', checked)}
-              />
-            </div>
-            
-            {values.enable_bus_cycle_lane && (
-              <div className="space-y-4">
-                <div className="max-w-2xl">
-                  <Label htmlFor={`${direction}-transportType`}>Transport Type</Label>
-                  <select
-                    id={`${direction}-transportType`}
-                    value={values.transport_type || ''}  // Changed property name
-                    onChange={(e) => onChange(direction, 'transport_type', e.target.value)}
-                    className="w-full mt-2 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="">Select type</option>
-                    <option value="bus">Bus Lane</option>
-                    <option value="bicycle">Bicycle Lane</option>
-                  </select>
-                </div>
-                <div>
-                  <Label htmlFor={`${direction}-flowRate`}>Flow Rate (vehicles per hour)</Label>
-                  <Input
-                    id={`${direction}-flowRate`}
-                    type="number"
-                    value={values.flow_rate || 0}  // Changed property name
-                    onChange={(e) => onChange(direction, 'flow_rate', parseInt(e.target.value))}
-                    min={0}
-                    max={2000}
-                    className="max-w-2xl mt-2"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-  
-          {/* Pedestrian Crossing */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between max-w-2xl">
-              <Label htmlFor={`${direction}-pedestrian`}>Pedestrian Crossing</Label>
-              <Switch 
-                id={`${direction}-pedestrian`}
-                checked={values.pedestrian_crossing_enabled || false}  // Changed property name
-                onCheckedChange={(checked) => onChange(direction, 'pedestrian_crossing_enabled', checked)}
-              />
-            </div>
-            
-            {values.pedestrian_crossing_enabled && (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor={`${direction}-crossingDuration`}>Crossing Duration (seconds)</Label>
-                  <Input 
-                    id={`${direction}-crossingDuration`}
-                    type="number"
-                    value={values.pedestrian_crossing_duration || 10}  // Changed property name
-                    onChange={(e) => onChange(direction, 'pedestrian_crossing_duration', parseInt(e.target.value))}
-                    min={10}
-                    max={60}
-                    className="max-w-2xl mt-2"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor={`${direction}-crossingRequests`}>Crossing Requests per Hour</Label>
-                  <Input 
-                    id={`${direction}-crossingRequests`}
-                    type="number"
-                    value={values.pedestrian_crossing_requests_per_hour || 0}  // Changed property name
-                    onChange={(e) => onChange(direction, 'pedestrian_crossing_requests_per_hour', parseInt(e.target.value))}
-                    min={0}
-                    className="max-w-2xl mt-2"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-  
-          {/* Traffic Priority */}
-          <div className="space-y-2">
-            <Label htmlFor={`${direction}-priority`}>Traffic Priority</Label>
-            <Input 
-              id={`${direction}-priority`}
-              type="number"
-              value={values.traffic_priority || 0}  // Changed property name
-              onChange={(e) => onChange(direction, 'traffic_priority', parseInt(e.target.value))}
-              min={0}
-              max={4}
-              placeholder="Priority level: 0 (no priority) to 4 (highest priority)"
-              className="max-w-2xl"
-            />
-          </div>
+  return (
+    <Card className="p-6 shadow-sm bg-white border-gray-100">
+      <div className="space-y-6">
+        <h2 className="text-lg font-medium">{direction} Road</h2>
+
+        {/* Number of Lanes */}
+        <div className="space-y-2">
+          <Label htmlFor={`${direction}-lanes`}>Number of Lanes</Label>
+          <Input 
+            id={`${direction}-lanes`}
+            type="number"
+            value={values.num_lanes || 1}
+            onChange={(e) => onChange(direction, 'num_lanes', parseInt(e.target.value))}
+            min={1}
+            max={5}
+            placeholder="Maximum number of lanes is 5"
+            className="max-w-2xl"
+          />
         </div>
-      </Card>
-    );
-  };
+
+        {/* Left Turn Lane */}
+        <div className="flex items-center justify-between max-w-2xl">
+          <Label htmlFor={`${direction}-leftTurn`}>Enable Left Turn Lane</Label>
+          <Switch 
+            id={`${direction}-leftTurn`}
+            checked={values.enable_left_turn_lane || false}
+            onCheckedChange={(checked) => onChange(direction, 'enable_left_turn_lane', checked)}
+          />
+        </div>
+
+        {/* Bus/Bicycle Lane */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between max-w-2xl">
+            <Label htmlFor={`${direction}-busCycle`}>Enable Bus/Bicycle Lane</Label>
+            <Switch 
+              id={`${direction}-busCycle`}
+              checked={values.enable_bus_cycle_lane || false}
+              onCheckedChange={(checked) => onChange(direction, 'enable_bus_cycle_lane', checked)}
+            />
+          </div>
+          
+          {values.enable_bus_cycle_lane && (
+            <div className="space-y-4">
+              <div className="max-w-2xl">
+                <Label htmlFor={`${direction}-transportType`}>Transport Type</Label>
+                <select
+                  id={`${direction}-transportType`}
+                  value={values.bus_cycle_lane_type || ''}
+                  onChange={(e) => onChange(direction, 'bus_cycle_lane_type', e.target.value)}
+                  className="w-full mt-2 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Select type</option>
+                  <option value="bus">Bus Lane</option>
+                  <option value="bicycle">Bicycle Lane</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor={`${direction}-flowRate`}>Flow Rate (vehicles per hour)</Label>
+                <Input
+                  id={`${direction}-flowRate`}
+                  type="number"
+                  value={values.flow_rate || 0}
+                  onChange={(e) => onChange(direction, 'flow_rate', parseInt(e.target.value))}
+                  min={0}
+                  max={2000}
+                  className="max-w-2xl mt-2"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Pedestrian Crossing */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between max-w-2xl">
+            <Label htmlFor={`${direction}-pedestrian`}>Pedestrian Crossing</Label>
+            <Switch 
+              id={`${direction}-pedestrian`}
+              checked={values.pedestrian_crossing_enabled || false}
+              onCheckedChange={(checked) => onChange(direction, 'pedestrian_crossing_enabled', checked)}
+            />
+          </div>
+          
+          {values.pedestrian_crossing_enabled && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor={`${direction}-crossingDuration`}>Crossing Duration (seconds)</Label>
+                <Input 
+                  id={`${direction}-crossingDuration`}
+                  type="number"
+                  value={values.pedestrian_crossing_duration || 10}
+                  onChange={(e) => onChange(direction, 'pedestrian_crossing_duration', parseInt(e.target.value))}
+                  min={10}
+                  max={60}
+                  className="max-w-2xl mt-2"
+                />
+              </div>
+              <div>
+                <Label htmlFor={`${direction}-crossingRequests`}>Crossing Requests per Hour</Label>
+                <Input 
+                  id={`${direction}-crossingRequests`}
+                  type="number"
+                  value={values.pedestrian_crossing_requests_per_hour || 0}
+                  onChange={(e) => onChange(direction, 'pedestrian_crossing_requests_per_hour', parseInt(e.target.value))}
+                  min={0}
+                  className="max-w-2xl mt-2"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Traffic Priority */}
+        <div className="space-y-2">
+          <Label htmlFor={`${direction}-priority`}>Traffic Priority</Label>
+          <Input 
+            id={`${direction}-priority`}
+            type="number"
+            value={values.traffic_priority || 0}
+            onChange={(e) => onChange(direction, 'traffic_priority', parseInt(e.target.value))}
+            min={0}
+            max={4}
+            placeholder="Priority level: 0 (no priority) to 4 (highest priority)"
+            className="max-w-2xl"
+          />
+        </div>
+      </div>
+    </Card>
+  );
+};
 
 const EditJunctionDesign = ({ junctionId, onNavigate }) => {
   console.log("EditJunctionDesign received junctionId:", junctionId); 
@@ -149,48 +149,48 @@ const EditJunctionDesign = ({ junctionId, onNavigate }) => {
   const [trafficFlowConfig, setTrafficFlowConfig] = useState(''); 
   const [formState, setFormState] = useState({
     northbound: {
-      lanes: 1,
-      hasLeftTurn: false,
-      hasBusCycle: false,
-      transportType: '',
-      flowRate: 0,
-      hasPedestrian: false,
-      crossingDuration: 10,
-      crossingRequests: 0,
-      priority: 0
+      num_lanes: 1,
+      enable_left_turn_lane: false,
+      enable_bus_cycle_lane: false,
+      bus_cycle_lane_type: '',
+      flow_rate: 0,
+      pedestrian_crossing_enabled: false,
+      pedestrian_crossing_duration: 10,
+      pedestrian_crossing_requests_per_hour: 0,
+      traffic_priority: 0
     },
     eastbound: {
-      lanes: 1,
-      hasLeftTurn: false,
-      hasBusCycle: false,
-      transportType: '',
-      flowRate: 0,
-      hasPedestrian: false,
-      crossingDuration: 10,
-      crossingRequests: 0,
-      priority: 0
+      num_lanes: 1,
+      enable_left_turn_lane: false,
+      enable_bus_cycle_lane: false,
+      bus_cycle_lane_type: '',
+      flow_rate: 0,
+      pedestrian_crossing_enabled: false,
+      pedestrian_crossing_duration: 10,
+      pedestrian_crossing_requests_per_hour: 0,
+      traffic_priority: 0
     },
     southbound: {
-      lanes: 1,
-      hasLeftTurn: false,
-      hasBusCycle: false,
-      transportType: '',
-      flowRate: 0,
-      hasPedestrian: false,
-      crossingDuration: 10,
-      crossingRequests: 0,
-      priority: 0
+      num_lanes: 1,
+      enable_left_turn_lane: false,
+      enable_bus_cycle_lane: false,
+      bus_cycle_lane_type: '',
+      flow_rate: 0,
+      pedestrian_crossing_enabled: false,
+      pedestrian_crossing_duration: 10,
+      pedestrian_crossing_requests_per_hour: 0,
+      traffic_priority: 0
     },
     westbound: {
-      lanes: 1,
-      hasLeftTurn: false,
-      hasBusCycle: false,
-      transportType: '',
-      flowRate: 0,
-      hasPedestrian: false,
-      crossingDuration: 10,
-      crossingRequests: 0,
-      priority: 0
+      num_lanes: 1,
+      enable_left_turn_lane: false,
+      enable_bus_cycle_lane: false,
+      bus_cycle_lane_type: '',
+      flow_rate: 0,
+      pedestrian_crossing_enabled: false,
+      pedestrian_crossing_duration: 10,
+      pedestrian_crossing_requests_per_hour: 0,
+      traffic_priority: 0
     }
   });
 
@@ -205,15 +205,45 @@ const EditJunctionDesign = ({ junctionId, onNavigate }) => {
         }
         
         const data = await response.json();
+        console.log("Fetched junction data:", data);
         
+        // Set junction name and traffic flow config
         setJunctionName(data.name);
-        setTrafficFlowConfig(data.traffic_flow_config);  
-        setFormState({
-          northbound: data.northbound,
-          eastbound: data.eastbound,
-          southbound: data.southbound,
-          westbound: data.westbound
-        });
+        setTrafficFlowConfig(data.traffic_flow_config);
+        
+        // Set form state with direction data
+        const newFormState = {};
+        for (const direction of ['northbound', 'eastbound', 'southbound', 'westbound']) {
+          if (data[direction]) {
+            // Ensure all required properties exist with defaults
+            newFormState[direction] = {
+              num_lanes: data[direction].num_lanes || 1,
+              enable_left_turn_lane: data[direction].enable_left_turn_lane || false,
+              enable_bus_cycle_lane: data[direction].enable_bus_cycle_lane || false,
+              bus_cycle_lane_type: data[direction].bus_cycle_lane_type || '',
+              flow_rate: data[direction].flow_rate || 0,
+              pedestrian_crossing_enabled: data[direction].pedestrian_crossing_enabled || false,
+              pedestrian_crossing_duration: data[direction].pedestrian_crossing_duration || 10,
+              pedestrian_crossing_requests_per_hour: data[direction].pedestrian_crossing_requests_per_hour || 0,
+              traffic_priority: data[direction].traffic_priority || 0
+            };
+          } else {
+            // If direction data doesn't exist, use defaults
+            newFormState[direction] = {
+              num_lanes: 1,
+              enable_left_turn_lane: false,
+              enable_bus_cycle_lane: false,
+              bus_cycle_lane_type: '',
+              flow_rate: 0,
+              pedestrian_crossing_enabled: false,
+              pedestrian_crossing_duration: 10,
+              pedestrian_crossing_requests_per_hour: 0,
+              traffic_priority: 0
+            };
+          }
+        }
+        
+        setFormState(newFormState);
       } catch (err) {
         setError(`Error loading junction: ${err.message}`);
       } finally {
@@ -225,6 +255,7 @@ const EditJunctionDesign = ({ junctionId, onNavigate }) => {
       fetchJunction();
     }
   }, [junctionId]);
+
   const handleDirectionChange = (direction, field, value) => {
     setFormState(prev => ({
       ...prev,
@@ -242,10 +273,16 @@ const EditJunctionDesign = ({ junctionId, onNavigate }) => {
     }
 
     // Check for valid priority assignments
-    const priorities = Object.values(formState).map(dir => dir.priority);
-    const nonZeroPriorities = priorities.filter(p => p > 0);
-    const uniqueNonZeroPriorities = new Set(nonZeroPriorities);
-    if (nonZeroPriorities.length !== uniqueNonZeroPriorities.size) {
+    const priorities = [];
+    for (const direction in formState) {
+      if (formState[direction].traffic_priority > 0) {
+        priorities.push(formState[direction].traffic_priority);
+      }
+    }
+    
+    // Check for duplicates in non-zero priorities
+    const uniquePriorities = new Set(priorities);
+    if (priorities.length !== uniquePriorities.size) {
       errors.push('Each direction must have a unique priority level (except for 0)');
     }
 
@@ -262,19 +299,25 @@ const EditJunctionDesign = ({ junctionId, onNavigate }) => {
   
       try {
         setSaving(true);
+        setError(null);
+        
+        const junctionData = {
+          name: junctionName,
+          traffic_flow_config: trafficFlowConfig,
+          northbound: formState.northbound,
+          southbound: formState.southbound,
+          eastbound: formState.eastbound,
+          westbound: formState.westbound
+        };
+
+        console.log("Submitting junction update:", junctionData);
+        
         const response = await fetch(`http://localhost:5000/api/junctions/${junctionId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            name: junctionName,
-            traffic_flow_config: trafficFlowConfig,  // Now this variable will be defined
-            northbound: formState.northbound,
-            southbound: formState.southbound,
-            eastbound: formState.eastbound,
-            westbound: formState.westbound
-          })
+          body: JSON.stringify(junctionData)
         });
   
         if (!response.ok) {
@@ -284,7 +327,8 @@ const EditJunctionDesign = ({ junctionId, onNavigate }) => {
   
         const result = await response.json();
         if (result.success) {
-          onNavigate('saved');
+          // Navigate back to junctions listing for this traffic flow
+          onNavigate('configJunctions', { configId: trafficFlowConfig, configName: trafficFlowConfig });
         } else {
           throw new Error(result.error || 'Failed to update junction');
         }
@@ -294,6 +338,7 @@ const EditJunctionDesign = ({ junctionId, onNavigate }) => {
         setSaving(false);
       }
     } else if (action === 'simulate') {
+      // Navigate to simulation page with junction ID
       onNavigate('simulation', { junctionId });
     }
   };
@@ -345,7 +390,7 @@ const EditJunctionDesign = ({ junctionId, onNavigate }) => {
           {/* Action Buttons */}
           <div className="flex justify-end space-x-4">
             <button
-              onClick={() => onNavigate('junctionSaved')}
+              onClick={() => onNavigate('configJunctions', { configId: trafficFlowConfig, configName: trafficFlowConfig })}
               className="px-8 py-3 text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               disabled={saving}
             >

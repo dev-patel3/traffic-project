@@ -4,6 +4,7 @@ import { Card } from '../ui/card';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Save, PlayCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '../ui/alert';
 import ConfigInfo from './ConfigInfo';
 
 const DirectionForm = ({ direction, values, onChange }) => {
@@ -18,8 +19,8 @@ const DirectionForm = ({ direction, values, onChange }) => {
           <Input 
             id={`${direction}-lanes`}
             type="number"
-            value={values.lanes}
-            onChange={(e) => onChange(direction, 'lanes', parseInt(e.target.value))}
+            value={values.num_lanes || 1}
+            onChange={(e) => onChange(direction, 'num_lanes', parseInt(e.target.value))}
             min={1}
             max={5}
             placeholder="Maximum number of lanes is 5"
@@ -32,8 +33,8 @@ const DirectionForm = ({ direction, values, onChange }) => {
           <Label htmlFor={`${direction}-leftTurn`}>Enable Left Turn Lane</Label>
           <Switch 
             id={`${direction}-leftTurn`}
-            checked={values.hasLeftTurn}
-            onCheckedChange={(checked) => onChange(direction, 'hasLeftTurn', checked)}
+            checked={values.enable_left_turn_lane || false}
+            onCheckedChange={(checked) => onChange(direction, 'enable_left_turn_lane', checked)}
           />
         </div>
 
@@ -43,19 +44,19 @@ const DirectionForm = ({ direction, values, onChange }) => {
             <Label htmlFor={`${direction}-busCycle`}>Enable Bus/Bicycle Lane</Label>
             <Switch 
               id={`${direction}-busCycle`}
-              checked={values.hasBusCycle}
-              onCheckedChange={(checked) => onChange(direction, 'hasBusCycle', checked)}
+              checked={values.enable_bus_cycle_lane || false}
+              onCheckedChange={(checked) => onChange(direction, 'enable_bus_cycle_lane', checked)}
             />
           </div>
           
-          {values.hasBusCycle && (
+          {values.enable_bus_cycle_lane && (
             <div className="space-y-4">
               <div className="max-w-2xl">
                 <Label htmlFor={`${direction}-transportType`}>Transport Type</Label>
                 <select
                   id={`${direction}-transportType`}
-                  value={values.transportType}
-                  onChange={(e) => onChange(direction, 'transportType', e.target.value)}
+                  value={values.bus_cycle_lane_type || ''}
+                  onChange={(e) => onChange(direction, 'bus_cycle_lane_type', e.target.value)}
                   className="w-full mt-2 rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="">Select type</option>
@@ -68,8 +69,8 @@ const DirectionForm = ({ direction, values, onChange }) => {
                 <Input
                   id={`${direction}-flowRate`}
                   type="number"
-                  value={values.flowRate}
-                  onChange={(e) => onChange(direction, 'flowRate', parseInt(e.target.value))}
+                  value={values.flow_rate || 0}
+                  onChange={(e) => onChange(direction, 'flow_rate', parseInt(e.target.value))}
                   min={0}
                   max={2000}
                   className="max-w-2xl mt-2"
@@ -85,20 +86,20 @@ const DirectionForm = ({ direction, values, onChange }) => {
             <Label htmlFor={`${direction}-pedestrian`}>Pedestrian Crossing</Label>
             <Switch 
               id={`${direction}-pedestrian`}
-              checked={values.hasPedestrian}
-              onCheckedChange={(checked) => onChange(direction, 'hasPedestrian', checked)}
+              checked={values.pedestrian_crossing_enabled || false}
+              onCheckedChange={(checked) => onChange(direction, 'pedestrian_crossing_enabled', checked)}
             />
           </div>
           
-          {values.hasPedestrian && (
+          {values.pedestrian_crossing_enabled && (
             <div className="space-y-4">
               <div>
                 <Label htmlFor={`${direction}-crossingDuration`}>Crossing Duration (seconds)</Label>
                 <Input 
                   id={`${direction}-crossingDuration`}
                   type="number"
-                  value={values.crossingDuration}
-                  onChange={(e) => onChange(direction, 'crossingDuration', parseInt(e.target.value))}
+                  value={values.pedestrian_crossing_duration || 10}
+                  onChange={(e) => onChange(direction, 'pedestrian_crossing_duration', parseInt(e.target.value))}
                   min={10}
                   max={60}
                   className="max-w-2xl mt-2"
@@ -109,8 +110,8 @@ const DirectionForm = ({ direction, values, onChange }) => {
                 <Input 
                   id={`${direction}-crossingRequests`}
                   type="number"
-                  value={values.crossingRequests}
-                  onChange={(e) => onChange(direction, 'crossingRequests', parseInt(e.target.value))}
+                  value={values.pedestrian_crossing_requests_per_hour || 0}
+                  onChange={(e) => onChange(direction, 'pedestrian_crossing_requests_per_hour', parseInt(e.target.value))}
                   min={0}
                   className="max-w-2xl mt-2"
                 />
@@ -125,8 +126,8 @@ const DirectionForm = ({ direction, values, onChange }) => {
           <Input 
             id={`${direction}-priority`}
             type="number"
-            value={values.priority}
-            onChange={(e) => onChange(direction, 'priority', parseInt(e.target.value))}
+            value={values.traffic_priority || 0}
+            onChange={(e) => onChange(direction, 'traffic_priority', parseInt(e.target.value))}
             min={0}
             max={4}
             placeholder="Priority level: 0 (no priority) to 4 (highest priority)"
@@ -140,50 +141,52 @@ const DirectionForm = ({ direction, values, onChange }) => {
 
 const JunctionDesign = ({ onNavigate, configId, configName, previousPage }) => {
   const [junctionName, setJunctionName] = useState('');
+  const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formState, setFormState] = useState({
     northbound: {
-      lanes: 1,
-      hasLeftTurn: false,
-      hasBusCycle: false,
-      transportType: '',
-      flowRate: 0,
-      hasPedestrian: false,
-      crossingDuration: 10,
-      crossingRequests: 0,
-      priority: 0
+      num_lanes: 1,
+      enable_left_turn_lane: false,
+      enable_bus_cycle_lane: false,
+      bus_cycle_lane_type: '',
+      flow_rate: 0,
+      pedestrian_crossing_enabled: false,
+      pedestrian_crossing_duration: 10,
+      pedestrian_crossing_requests_per_hour: 0,
+      traffic_priority: 0
     },
     eastbound: {
-      lanes: 1,
-      hasLeftTurn: false,
-      hasBusCycle: false,
-      transportType: '',
-      flowRate: 0,
-      hasPedestrian: false,
-      crossingDuration: 10,
-      crossingRequests: 0,
-      priority: 0
+      num_lanes: 1,
+      enable_left_turn_lane: false,
+      enable_bus_cycle_lane: false,
+      bus_cycle_lane_type: '',
+      flow_rate: 0,
+      pedestrian_crossing_enabled: false,
+      pedestrian_crossing_duration: 10,
+      pedestrian_crossing_requests_per_hour: 0,
+      traffic_priority: 0
     },
     southbound: {
-      lanes: 1,
-      hasLeftTurn: false,
-      hasBusCycle: false,
-      transportType: '',
-      flowRate: 0,
-      hasPedestrian: false,
-      crossingDuration: 10,
-      crossingRequests: 0,
-      priority: 0
+      num_lanes: 1,
+      enable_left_turn_lane: false,
+      enable_bus_cycle_lane: false,
+      bus_cycle_lane_type: '',
+      flow_rate: 0,
+      pedestrian_crossing_enabled: false,
+      pedestrian_crossing_duration: 10,
+      pedestrian_crossing_requests_per_hour: 0,
+      traffic_priority: 0
     },
     westbound: {
-      lanes: 1,
-      hasLeftTurn: false,
-      hasBusCycle: false,
-      transportType: '',
-      flowRate: 0,
-      hasPedestrian: false,
-      crossingDuration: 10,
-      crossingRequests: 0,
-      priority: 0
+      num_lanes: 1,
+      enable_left_turn_lane: false,
+      enable_bus_cycle_lane: false,
+      bus_cycle_lane_type: '',
+      flow_rate: 0,
+      pedestrian_crossing_enabled: false,
+      pedestrian_crossing_duration: 10,
+      pedestrian_crossing_requests_per_hour: 0,
+      traffic_priority: 0
     }
   });
 
@@ -197,36 +200,78 @@ const JunctionDesign = ({ onNavigate, configId, configName, previousPage }) => {
     }));
   };
 
-  const handleSubmit = (action) => {
-    // Validate form
+  const validateForm = () => {
+    const errors = [];
     if (!junctionName.trim()) {
-      alert('Please enter a junction name');
-      return;
+      errors.push('Junction name is required');
     }
 
     // Check for valid priority assignments
-    const priorities = Object.values(formState).map(dir => dir.priority);
+    const priorities = Object.values(formState).map(dir => dir.traffic_priority);
     const nonZeroPriorities = priorities.filter(p => p > 0);
     const uniqueNonZeroPriorities = new Set(nonZeroPriorities);
     if (nonZeroPriorities.length !== uniqueNonZeroPriorities.size) {
-      alert('Each direction must have a unique priority level (except for 0)');
-      return;
+      errors.push('Each direction must have a unique priority level (except for 0)');
     }
 
-    // Process form data
-    const formData = {
-      name: junctionName,
-      traffic_flow_config: configId, // Include the traffic flow configuration ID
-      ...formState
-    };
+    return errors;
+  };
 
-    // Handle different actions
+  const handleSubmit = async (action) => {
+    // Validate form
     if (action === 'save') {
-      console.log('Saving junction:', formData);
-      // After successful save, navigate back to the configuration junctions page
-      onNavigate('configJunctions', { configId, configName });
+      const formErrors = validateForm();
+      if (formErrors.length > 0) {
+        setError(formErrors.join(', '));
+        return;
+      }
+
+      try {
+        setIsSubmitting(true);
+        setError(null);
+
+        // Process form data
+        const formData = {
+          name: junctionName,
+          traffic_flow_config: configId,
+          northbound: formState.northbound,
+          southbound: formState.southbound,
+          eastbound: formState.eastbound,
+          westbound: formState.westbound
+        };
+
+        console.log('Saving junction:', formData);
+
+        // Send the data to the backend
+        const response = await fetch('http://localhost:5000/api/junctions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to save junction');
+        }
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to save junction');
+        }
+
+        // After successful save, navigate back to the configuration junctions page
+        onNavigate('configJunctions', { configId, configName });
+      } catch (err) {
+        console.error('Error saving junction:', err);
+        setError(err.message || 'Failed to save junction');
+      } finally {
+        setIsSubmitting(false);
+      }
     } else if (action === 'simulate') {
-      console.log('Running simulation with:', formData);
+      // This would be implemented for actual simulation
+      console.log('Running simulation with:', formState);
       onNavigate('simulation');
     }
   };
@@ -235,6 +280,13 @@ const JunctionDesign = ({ onNavigate, configId, configName, previousPage }) => {
     <div className="min-h-screen bg-gray-100">
       <main className="max-w-7xl mx-auto px-4 py-6">
         <div className="space-y-6">
+          {/* Display error if any */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           {/* Display Traffic Configuration Info */}
           <ConfigInfo configId={configId} />
 
@@ -267,19 +319,22 @@ const JunctionDesign = ({ onNavigate, configId, configName, previousPage }) => {
             <button
               onClick={() => onNavigate('configJunctions', { configId, configName })}
               className="px-8 py-3 text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               onClick={() => handleSubmit('save')}
               className="px-8 py-3 text-white rounded-md flex items-center space-x-2 bg-gray-900 hover:bg-gray-800"
+              disabled={isSubmitting}
             >
               <Save className="h-5 w-5" />
-              <span>Save Design</span>
+              <span>{isSubmitting ? 'Saving...' : 'Save Design'}</span>
             </button>
             <button
               onClick={() => handleSubmit('simulate')}
               className="px-8 py-3 text-white rounded-md flex items-center space-x-2 bg-gray-900 hover:bg-gray-800"
+              disabled={isSubmitting}
             >
               <PlayCircle className="h-5 w-5" />
               <span>Run Simulation</span>
