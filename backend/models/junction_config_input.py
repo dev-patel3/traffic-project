@@ -23,6 +23,13 @@ class JunctionConfigurationInput:
             if not isinstance(lanes, int) or not (1 <= lanes <= 5):
                 self.errors.append(f"Number of lanes for {direction} must be an integer between 1 and 5.")
 
+    def validating_exit_lanes(self):
+        """Validate that the number of exit lanes is between 1 and 5 for all directions."""
+        for direction in ['northbound', 'southbound', 'eastbound', 'westbound']:
+            exit_lanes = self.junctionConfig.exit_lanes.get(direction, 0)
+            if not isinstance(exit_lanes, int) or not (1 <= exit_lanes <= 5):
+                self.errors.append(f"Number of exit lanes for {direction} must be an integer between 1 and 5.")
+
     def validating_bus_cycle_lane(self):
         """Validate bus/cycle lane to have a valid flow rate that is an integer between 1 and 2000 """
         for direction in ['northbound', 'southbound', 'eastbound', 'westbound']:
@@ -42,6 +49,14 @@ class JunctionConfigurationInput:
                 if not isinstance(duration, int) or not (10 <= duration <= 60):
                     self.errors.append(f"Crossing duration for {direction} must be an integer and between 10 and 60 seconds.")
     
+    def validating_number_of_crossings_per_hour(self):
+        """Validate number of crossing requests for each direction, which must be """
+        for direction in ['northbound', 'southbound', 'eastbound', 'westbound']:
+            if self.junctionConfig.has_pedestrian_crossing:
+                requests = self.junctionConfig.pedestrian_requests_per_hour
+                if not isinstance(requests, int) or not (1 <= requests <= 40):
+                    self.errors.append(f"Crossing requests for {direction} must be an integer and between 1 and 40 requests.")
+
     def validating_priority_levels(self):
         """Validating that priority levels include exactly 0, 1, 2, 3, and 4 with no duplicates."""
     
@@ -77,8 +92,10 @@ class JunctionConfigurationInput:
         """Runs all validation methods and returns True if valid."""
         self.validating_name()
         self.validating_lanes()
+        self.validating_exit_lanes()
         self.validating_bus_cycle_lane()
         self.validating_crossing_durations()
+        self.validating_number_of_crossings_per_hour()
         self.validating_priority_levels()
         self.validating_maximum_junctions()
 
@@ -131,7 +148,7 @@ class JunctionConfigurationInput:
         if len(non_zero_priorities) != len(set(non_zero_priorities)):
             errors.append("Priority levels (1-4) must be unique for each direction.")
 
-        # 9) Validate number of outgoing lanes matches maximum incoming lanes, for all directions
+        # 9) Validate number of outgoing lanes matches maximum incoming lanes, for all directions (or sum of outgoing lanes need to match incoming lanes)
 
         # 10) Validate that each incoming lane routees to a dedicated outgoing lane (no merging permitted)
         
